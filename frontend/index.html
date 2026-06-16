@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Financeiro</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Meu Monitor Financeiro</h1>
+        <p>Suba os extratos do Nubank, Inter ou PicPay (CSV ou OFX) individuais ou combinados</p>
+        
+        <div class="upload-box" id="drop-zone">
+            <p>Clique no botão e selecione um ou mais extratos juntos (segure Ctrl)</p>
+            <button id="browse-btn" type="button">Selecionar Arquivos</button>
+        </div>
+
+        <div id="dashboard-row" class="hidden">
+            
+            <div id="finance-summary">
+                <div class="card banco-card">
+                    <h3>Bancos Analisados</h3>
+                    <p id="banco-badge">Aguardando...</p>
+                </div>
+
+                <div class="card">
+                    <h3>Entradas</h3>
+                    <p id="total-entradas" class="valor-entrada">R$ 0,00</p>
+                </div>
+                <div class="card">
+                    <h3>Saídas</h3>
+                    <p id="total-saidas" class="valor-saida">R$ 0,00</p>
+                </div>
+                <div class="card">
+                    <h3>Saldo</h3>
+                    <p id="saldo-final" class="valor-saldo">R$ 0,00</p>
+                </div>
+            </div>
+
+            <div id="chart-container">
+                <h3>Gastos por Categoria</h3>
+                <canvas id="categoryChart"></canvas>
+            </div>
+
+        </div>
+
+        <div id="table-container" class="hidden">
+            <h3>Extrato Detalhado</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th style="text-align: right;">Valor</th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-body">
+                </tbody>
+            </table>
+        </div>
+
+        <div id="status-message" class="hidden"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

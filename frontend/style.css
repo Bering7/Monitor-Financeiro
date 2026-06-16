@@ -1,0 +1,223 @@
+/* --- CONFIGURAÇÕES GERAIS --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #121214;
+    color: #e1e1e6;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Permite que a página cresça para baixo conforme dados surgem */
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* --- CONTAINER PRINCIPAL (AMPLO E RESPONSIVO) --- */
+.container {
+    width: 100%;
+    max-width: 1100px; /* Largura perfeita para visualização em computadores */
+    background-color: #202024;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    margin: 20px 0;
+}
+
+h1 {
+    color: #04d361;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 2.2rem;
+}
+
+p {
+    color: #a8a8b3;
+    margin-bottom: 30px;
+    font-size: 1.05rem;
+}
+
+/* --- ÁREA DE UPLOAD --- */
+.upload-box {
+    border: 2px dashed #04d361;
+    padding: 40px;
+    border-radius: 8px;
+    background-color: #29292e;
+    max-width: 500px;      /* Deixa a caixa de upload centralizada e elegante */
+    margin: 0 auto 30px auto; /* Centraliza horizontalmente e joga margem para baixo */
+    transition: all 0.3s ease;
+}
+
+.upload-box:hover {
+    background-color: #323238;
+    border-color: #029944;
+}
+
+.upload-box p {
+    margin-bottom: 15px; /* Ajusta o espaçamento interno do texto do upload */
+}
+
+button {
+    background-color: #04d361;
+    color: #000;
+    border: none;
+    padding: 12px 24px;
+    font-weight: bold;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+button:hover {
+    background-color: #029944;
+    transform: scale(1.02); /* Leve efeito de crescimento ao passar o mouse */
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* --- ESTRUTURA DO DASHBOARD (LADO A LADO) --- */
+#dashboard-row {
+    display: flex;
+    gap: 30px;
+    align-items: stretch; /* Garante que a coluna de cards e o gráfico tenham a mesma altura */
+    width: 100%;
+    margin-top: 30px;
+    margin-bottom: 40px;
+}
+
+/* Lado Esquerdo: Empilhamento dos cards */
+#finance-summary {
+    flex: 1; /* Ocupa metade do espaço da linha */
+    display: flex;
+    flex-direction: column; /* Força os cartões a ficarem um embaixo do outro */
+    gap: 15px; /* Espaço entre os cartões */
+    margin: 0;
+    width: 100%;
+}
+
+.card {
+    background: #29292e;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #323238;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex: 1; /* Distribui a altura igualmente entre todos */
+}
+
+.card h3 {
+    margin: 0 0 8px 0;
+    font-size: 0.9rem;
+    color: #c4c4cc;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* NOVO: Customização para o Card que exibe o Nome do Banco */
+.card.banco-card {
+    border-left: 4px solid #04d361;
+}
+
+#banco-badge {
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* Estilização dos Valores dentro dos Cards */
+.valor-entrada { color: #04d361; font-size: 1.4rem; font-weight: bold; margin: 0; }
+.valor-saida { color: #f75a68; font-size: 1.4rem; font-weight: bold; margin: 0; }
+.valor-saldo { font-size: 1.4rem; font-weight: bold; margin: 0; }
+
+/* Lado Direito: Caixa do Gráfico */
+#chart-container {
+    flex: 1; /* Ocupa a outra metade do espaço da linha */
+    background: #29292e;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #323238;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#chart-container h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #04d361;
+    text-align: center;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#categoryChart {
+    max-height: 250px !important; /* Mantém o gráfico em uma proporção perfeita em relação aos cards */
+    margin: 0 auto;
+}
+
+/* --- TABELA DE TRANSAÇÕES --- */
+#table-container {
+    text-align: left; /* Garante que os textos e o título do extrato fiquem alinhados à esquerda */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #323238;
+    background: #29292e;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 30px;
+}
+
+#table-container h3 {
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    margin-top: 0;
+    color: #04d361;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    margin-top: 10px;
+}
+
+th {
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 10px;
+    border-bottom: 2px solid #323238;
+    color: #a8a8b3;
+}
+
+td {
+    font-size: 0.95rem;
+    padding: 10px;
+}
+
+/* Evita quebra de linha em colunas numéricas ou específicas (Força o sinal de menos a ficar junto do valor) */
+td.no-break {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+/* --- MENSAGENS DE STATUS --- */
+#status-message {
+    margin-top: 25px;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.success { color: #04d361; }
+.error { color: #f75a68; }
+.hidden { display: none !important; } /* Garante que oculte mesmo se houver regras flex de display */

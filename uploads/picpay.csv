@@ -1,0 +1,46 @@
+﻿data,hora,tipo,"origem / destino",valor,"forma de pagamento"
+2026-06-14,19:17,"Pix enviado","Henrique Moura Bering","−R$ 20,00","Com saldo"
+2026-06-13,13:11,"Pix recebido","Andressa Tiburcio Maia da Silva","+R$ 20,00",
+2026-06-12,14:20,"Pix enviado","Henrique Moura Bering","−R$ 150,00","Com saldo"
+2026-06-12,14:19,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 150,00",
+2026-06-11,11:39,"Pix enviado","Henrique Moura Bering","−R$ 50,00","Com saldo"
+2026-06-11,11:39,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-06-10,10:32,"Pix enviado","Henrique Moura Bering","−R$ 60,00","Com saldo"
+2026-06-10,10:31,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 30,00",
+2026-06-10,10:30,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 30,00",
+2026-06-10,10:23,"Pagamento realizado","Fatura PicPay Card","−R$ 0,26","Com saldo"
+2026-06-09,12:07,"Pix enviado","Henrique Moura Bering","−R$ 50,00","Com saldo"
+2026-06-09,11:53,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-06-05,12:22,"Pix enviado","Henrique Moura Bering","−R$ 36,00","Com saldo"
+2026-06-05,10:07,"Compra realizada","Pannabreadpaese Brasilia Bra","−R$ 13,80","Com saldo"
+2026-06-05,09:46,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-06-03,16:22,"Compra realizada","Conexao Digital Brasilia Bra","−R$ 900,00","Com saldo"
+2026-06-03,15:26,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 900,00",
+2026-06-03,12:14,"Compra realizada","Allpark Empreendimento Df Bra","−R$ 8,00","Com saldo"
+2026-06-03,12:13,"Pix recebido","Renato Gonçalves Lopes Neto","+R$ 8,00",
+2026-06-03,10:03,"Pix enviado","Henrique Moura Bering","−R$ 5,00","Com saldo"
+2026-06-03,09:56,"Pix recebido","Renato Gonçalves Lopes Neto","+R$ 5,00",
+2026-06-02,10:49,"Pix enviado","Henrique Moura Bering","−R$ 50,00","Com saldo"
+2026-06-02,10:47,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-06-01,18:47,"Pix enviado","Henrique Moura Bering","−R$ 50,00","Com saldo"
+2026-06-01,11:07,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-05-31,12:44,"Pix enviado","Henrique Moura Bering","−R$ 9,00","Com saldo"
+2026-05-31,12:43,"Pix recebido","Henrique Moura Bering","+R$ 8,00",
+2026-05-30,15:10,"Pix enviado","Henrique Moura Bering","−R$ 200,00","Com saldo"
+2026-05-30,14:49,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 200,00",
+2026-05-28,22:32,"Pix enviado","Henrique Moura Bering","−R$ 50,00","Com saldo"
+2026-05-28,22:03,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-05-28,14:34,"Pix enviado","Henrique Moura Bering","−R$ 300,00","Com saldo"
+2026-05-28,14:33,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 300,00",
+2026-05-26,21:54,"Pix enviado","GUILHERME VITORINO DE ALCANTARA","−R$ 2,50","Com saldo"
+2026-05-26,10:16,"Pix enviado","Henrique Moura Bering","−R$ 50,00","Com saldo"
+2026-05-26,09:05,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-05-25,09:45,"Pix enviado","Henrique Moura Bering","−R$ 50,00","Com saldo"
+2026-05-25,09:41,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-05-23,13:45,"Pix enviado","Henrique Moura Bering","−R$ 150,00","Com saldo"
+2026-05-23,13:44,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 150,00",
+2026-05-19,19:03,"Pix enviado","Henrique Moura Bering","−R$ 60,00","Com saldo"
+2026-05-19,09:46,"Pix recebido","CARLOS ERNESTO DA SILVA PINTO","+R$ 50,00",
+2026-05-19,09:40,"Compra realizada","Mp *cafedodg Osasco Bra","−R$ 7,00","Com saldo"
+2026-05-18,10:20,"Compra realizada","Pannabreadpaese Brasilia Bra","−R$ 15,00","Com saldo"
+2026-05-17,13:44,"Pix enviado","CESAR LUIZ DE OLIVEIRA NASCIMENTO","−R$ 25,00","Com saldo"
