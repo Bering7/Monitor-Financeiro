@@ -42,7 +42,7 @@ function uploadFiles(files) {
         formData.append('file', files[i]);
     }
 
-    fetch('http://127.0.0.1:5000/upload', {
+    fetch('https://monitor-financeiro-backend.onrender.com/upload', {
         method: 'POST',
         body: formData
     })
