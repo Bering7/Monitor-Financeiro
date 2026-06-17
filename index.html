@@ -7,64 +7,140 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Meu Monitor Financeiro</h1>
-        <p>Suba os extratos do Nubank, Inter ou PicPay (CSV ou OFX) individuais ou combinados</p>
+
+    <div id="auth-container">
         
-        <div class="upload-box" id="drop-zone">
-            <p>Clique no botão e selecione um ou mais extratos juntos (segure Ctrl)</p>
-            <button id="browse-btn" type="button">Selecionar Arquivos</button>
-        </div>
-
-        <div id="dashboard-row" class="hidden">
+        <div id="login-box" class="auth-box">
+            <h2>Acessar Monitor</h2>
+            <p class="auth-subtitle">Entre com suas credenciais para acessar o painel</p>
             
-            <div id="finance-summary">
-                <div class="card banco-card">
-                    <h3>Bancos Analisados</h3>
-                    <p id="banco-badge">Aguardando...</p>
-                </div>
+            <div class="input-group">
+                <input type="email" id="login-email" placeholder="E-mail" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" id="login-senha" placeholder="Sua Senha" required>
+            </div>
+            
+            <button type="button" class="btn-auth btn-login" onclick="executarLogin()">Entrar</button>
+            
+            <p class="auth-switch">
+                Não tem conta? <a href="#" onclick="alternarAbasAuth(false)">Cadastre-se</a>
+            </p>
+        </div>
 
-                <div class="card">
-                    <h3>Entradas</h3>
-                    <p id="total-entradas" class="valor-entrada">R$ 0,00</p>
+        <div id="cadastro-box" class="auth-box" style="display: none;">
+            <h2>Criar Conta</h2>
+            <p class="auth-subtitle">Cadastre-se para começar a gerenciar suas finanças</p>
+            
+            <div class="input-group">
+                <input type="text" id="cad-nome" placeholder="Nome Completo" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="email" id="cad-email" placeholder="E-mail" required>
+            </div>
+            
+            <div class="input-group">
+                <input type="password" id="cad-senha" placeholder="Crie uma Senha" required>
+            </div>
+            
+            <button type="button" class="btn-auth btn-cadastro" onclick="executarCadastro()">Registrar</button>
+            
+            <p class="auth-switch">
+                Já possui conta? <a href="#" onclick="alternarAbasAuth(true)">Fazer Login</a>
+            </p>
+        </div>
+
+    </div> <div id="dashboard-container" style="display: none;">
+        <div class="container">
+            
+            <header class="dashboard-header">
+                <div>
+                    <h1>Meu Monitor Financeiro</h1>
+                    <p>Suba os extratos do Nubank, Inter ou PicPay (CSV ou OFX) individuais ou combinados</p>
                 </div>
-                <div class="card">
-                    <h3>Saídas</h3>
-                    <p id="total-saidas" class="valor-saida">R$ 0,00</p>
-                </div>
-                <div class="card">
-                    <h3>Saldo</h3>
-                    <p id="saldo-final" class="valor-saldo">R$ 0,00</p>
+                <button id="btn-logout" class="logout-button" type="button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                    Sair da Conta
+                </button>
+            </header>
+            
+            <div class="upload-box" id="drop-zone">
+                <p>Clique no botão e selecione um ou mais extratos juntos (segure Ctrl)</p>
+                <button id="browse-btn" type="button">Selecionar Arquivos</button>
+            </div>
+
+            <div id="filter-container" class="hidden">
+                <h3>Filtrar por Banco:</h3>
+                <div class="filter-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filter-nubank" value="Nubank" checked onchange="filtrarPorBanco()">
+                        <span class="custom-checkbox"></span> Nubank
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filter-inter" value="Inter" checked onchange="filtrarPorBanco()">
+                        <span class="custom-checkbox"></span> Inter
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="filter-picpay" value="PicPay" checked onchange="filtrarPorBanco()">
+                        <span class="custom-checkbox"></span> PicPay
+                    </label>
                 </div>
             </div>
 
-            <div id="chart-container">
-                <h3>Gastos por Categoria</h3>
-                <canvas id="categoryChart"></canvas>
+            <div id="dashboard-row" class="hidden">
+                
+                <div id="finance-summary">
+                    <div class="card banco-card">
+                        <h3>Bancos Analisados</h3>
+                        <p id="banco-badge">Aguardando...</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Entradas</h3>
+                        <p id="total-entradas" class="valor-entrada">R$ 0,00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Saídas</h3>
+                        <p id="total-saidas" class="valor-saida">R$ 0,00</p>
+                    </div>
+                    <div class="card">
+                        <h3>Saldo</h3>
+                        <p id="saldo-final" class="valor-saldo">R$ 0,00</p>
+                    </div>
+                </div>
+
+                <div id="chart-container">
+                    <h3>Gastos por Categoria</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+
             </div>
 
-        </div>
+            <div id="table-container" class="hidden">
+                <h3>Extrato Detalhado</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Categoria</th>
+                            <th style="text-align: right;">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactions-body">
+                    </tbody>
+                </table>
+            </div>
 
-        <div id="table-container" class="hidden">
-            <h3>Extrato Detalhado</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Descrição</th>
-                        <th>Categoria</th>
-                        <th style="text-align: right;">Valor</th>
-                    </tr>
-                </thead>
-                <tbody id="transactions-body">
-                </tbody>
-            </table>
-        </div>
+            <div id="status-message" class="hidden"></div>
 
-        <div id="status-message" class="hidden"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="app.js"></script>
+        </div> </div> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./app.js"></script>
 </body>
 </html>
