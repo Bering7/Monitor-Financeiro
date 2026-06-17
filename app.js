@@ -2,7 +2,6 @@
 const API_URL = 'https://monitor-financeiro-backend.onrender.com';
 
 // --- ELEMENTOS DO DOM ---
-// Usamos seletores dinâmicos ou verificações para evitar que o script quebre se a ordem falhar
 const browseBtn = document.getElementById('browse-btn');
 const statusMessage = document.getElementById('status-message');
 const dashboardRow = document.getElementById('dashboard-row');
@@ -14,14 +13,15 @@ const transactionsBody = document.getElementById('transactions-body');
 
 // ARMAZENAMENTO GLOBAL DOS DADOS PARA O FILTRO FUNCIONAR EM TEMPO REAL
 let todasAsTransacoes = []; 
-let myChart = null; // Guarda o gráfico para poder limpá-lo a cada novo upload
+let myChart = null; 
 
 const MyInvisibleInput = document.createElement('input');
 MyInvisibleInput.type = 'file';
-MyInvisibleInput.multiple = true; // Permite selecionar múltiplos arquivos no gerenciador do sistema
+MyInvisibleInput.multiple = true; 
 
-// --- VERIFICAÇÃO DE SESSÃO ATIVA AO RECARREGAR A PÁGINA ---
+// --- ATRIBUIR EVENTOS AOS BOTÕES ASSIM QUE A PÁGINA CARREGAR ---
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Verificação de sessão ativa permanente (localStorage)
     const token = localStorage.getItem('token');
     if (token) {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
@@ -31,8 +31,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'block';
         if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'none';
     }
+
+    // 2. Vinculação Definitiva dos Botões de Autenticação (Garante o funcionamento do clique)
+    const btnEntrar = document.querySelector('.btn-login');
+    if (btnEntrar) {
+        btnEntrar.addEventListener('click', (e) => {
+            e.preventDefault();
+            executarLogin();
+        });
+    }
+
+    const btnRegistrar = document.querySelector('.btn-cadastro');
+    if (btnRegistrar) {
+        btnRegistrar.addEventListener('click', (e) => {
+            e.preventDefault();
+            executarCadastro();
+        });
+    }
+
+    // 3. Atalho de teclado: Permitir entrar apertando "Enter" no campo de senha de login
+    const campoSenhaLogin = document.getElementById('login-senha');
+    if (campoSenhaLogin) {
+        campoSenhaLogin.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') executarLogin();
+        });
+    }
 });
 
+// --- EVENTOS DE UPLOAD ---
 if (browseBtn) {
     browseBtn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -90,7 +116,7 @@ function uploadFiles(files) {
     });
 }
 
-// Função para alternar visualmente entre as telas de Login e Cadastro
+// --- FUNÇÕES DE AUTENTICAÇÃO ---
 function alternarAbasAuth(mostrarLogin) {
     const loginBox = document.getElementById('login-box');
     const cadastroBox = document.getElementById('cadastro-box');
@@ -106,7 +132,6 @@ function alternarAbasAuth(mostrarLogin) {
     }
 }
 
-// Consome a rota do backend em Python para cadastrar o usuário no SQLite
 function executarCadastro() {
     const nome = document.getElementById('cad-nome').value;
     const email = document.getElementById('cad-email').value;
@@ -134,7 +159,6 @@ function executarCadastro() {
     .catch(err => console.error("Erro ao cadastrar:", err));
 }
 
-// Valida o usuário e guarda o JWT no localStorage do navegador
 function executarLogin() {
     const email = document.getElementById('login-email').value;
     const senha = document.getElementById('login-senha').value;
@@ -245,6 +269,7 @@ if (logoutBtn) {
     });
 }
 
+// --- PROCESSAMENTO E EXIBIÇÃO EM TELA ---
 function processarEExibirDados(data) {
     todasAsTransacoes = data.transacoes || [];
     
