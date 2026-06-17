@@ -22,7 +22,7 @@ MyInvisibleInput.multiple = true; // Permite selecionar múltiplos arquivos no g
 
 // --- VERIFICAÇÃO DE SESSÃO ATIVA AO RECARREGAR A PÁGINA ---
 document.addEventListener('DOMContentLoaded', () => {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (token) {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
         if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'block';
@@ -60,7 +60,7 @@ function uploadFiles(files) {
         formData.append('file', files[i]);
     }
 
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
 
     fetch(`${API_URL}/upload`, {
         method: 'POST',
@@ -134,7 +134,7 @@ function executarCadastro() {
     .catch(err => console.error("Erro ao cadastrar:", err));
 }
 
-// Valida o usuário e guarda o JWT no SessionStorage do navegador
+// Valida o usuário e guarda o JWT no localStorage do navegador
 function executarLogin() {
     const email = document.getElementById('login-email').value;
     const senha = document.getElementById('login-senha').value;
@@ -152,8 +152,8 @@ function executarLogin() {
     .then(response => response.json().then(data => ({ status: response.status, body: data })))
     .then(res => {
         if (res.status === 200) {
-            sessionStorage.setItem('token', res.body.token);
-            sessionStorage.setItem('usuario', JSON.stringify(res.body.usuario));
+            localStorage.setItem('token', res.body.token);
+            localStorage.setItem('usuario', JSON.stringify(res.body.usuario));
             
             alert(`Bem-vindo, ${res.body.usuario.nome}!`);
             
@@ -172,7 +172,7 @@ function executarLogin() {
 }
 
 function carregarHistoricoBanco() {
-    const token = sessionStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (!token) return;
     
     fetch(`${API_URL}/transacoes`, {
@@ -203,8 +203,8 @@ function carregarHistoricoBanco() {
 }
 
 function executarLogout() {
-    sessionStorage.removeItem('token');
-    sessionStorage.removeItem('usuario');
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
     todasAsTransacoes = [];
 
     if (myChart) {
