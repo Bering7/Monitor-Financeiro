@@ -19,9 +19,44 @@ const MyInvisibleInput = document.createElement('input');
 MyInvisibleInput.type = 'file';
 MyInvisibleInput.multiple = true; 
 
-// --- ATRIBUIR EVENTOS AOS BOTÕES ASSIM QUE A PÁGINA CARREGAR ---
+// --- AUXILIAR: EXIBIR MENSAGEM DE ERRO ESTILO INSTAGRAM ---
+function exibirAvisoFormulario(containerId, mensagem, tipo = 'erro') {
+    // Remove qualquer aviso existente antes de criar um novo
+    removerAvisosFormulario(containerId);
+
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const divAviso = document.createElement('div');
+    divAviso.className = `form-alert-box ${tipo}`;
+    
+    // Ícone de atenção padrão de formulários
+    divAviso.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span>${mensagem}</span>
+    `;
+
+    // Insere o aviso logo após o subtítulo/título da caixa
+    const subtitulo = container.querySelector('.auth-subtitle') || container.querySelector('h2');
+    if (subtitulo) {
+        subtitulo.insertAdjacentElement('afterend', divAviso);
+    }
+}
+
+function removerAvisosFormulario(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const avisoAntigo = container.querySelector('.form-alert-box');
+    if (avisoAntigo) avisoAntigo.remove();
+}
+
+// --- ATRIBUIR EVENTOS ASSIM QUE A PÁGINA CARREGAR ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Verificação de sessão ativa permanente (localStorage)
+    // 1. Verificação de sessão ativa permanente
     const token = localStorage.getItem('token');
     if (token) {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
@@ -32,9 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'none';
     }
 
-    // 2. Vinculação Definitiva dos Botões de Autenticação (Garante o funcionamento do clique)
+    // 2. Vinculação única e limpa dos botões (Ignora o onclick do HTML antigo para evitar repetições)
     const btnEntrar = document.querySelector('.btn-login');
     if (btnEntrar) {
+        btnEntrar.removeAttribute('onclick'); // Prevenção secundária contra duplicações
         btnEntrar.addEventListener('click', (e) => {
             e.preventDefault();
             executarLogin();
@@ -43,13 +79,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnRegistrar = document.querySelector('.btn-cadastro');
     if (btnRegistrar) {
+        btnRegistrar.removeAttribute('onclick');
         btnRegistrar.addEventListener('click', (e) => {
             e.preventDefault();
             executarCadastro();
         });
     }
 
-    // 3. Atalho de teclado: Permitir entrar apertando "Enter" no campo de senha de login
+    // Limpar erros da tela de login ao começar a digitar novamente
+    const camposLogin = document.querySelectorAll('#login-box input');
+    camposLogin.forEach(input => {
+        input.addEventListener('input', () => removerAvisosFormulario('login-box'));
+    });
+
+    const camposCad = document.querySelectorAll('#cadastro-box input');
+    camposCad.forEach(input => {
+        input.addEventListener('input', () => removerAvisosFormulario('cadastro-box'));
+    });
+
+    // Atalho de teclado: Enter no campo de senha
     const campoSenhaLogin = document.getElementById('login-senha');
     if (campoSenhaLogin) {
         campoSenhaLogin.addEventListener('keypress', (e) => {
@@ -90,9 +138,7 @@ function uploadFiles(files) {
 
     fetch(`${API_URL}/upload`, {
         method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + token
-        },
+        headers: { 'Authorization': 'Bearer ' + token },
         body: formData
     })
     .then(response => {
@@ -118,6 +164,9 @@ function uploadFiles(files) {
 
 // --- FUNÇÕES DE AUTENTICAÇÃO ---
 function alternarAbasAuth(mostrarLogin) {
+    removerAvisosFormulario('login-box');
+    removerAvisosFormulario('cadastro-box');
+    
     const loginBox = document.getElementById('login-box');
     const cadastroBox = document.getElementById('cadastro-box');
     
@@ -136,11 +185,15 @@ function executarCadastro() {
     const nome = document.getElementById('cad-nome').value;
     const email = document.getElementById('cad-email').value;
     const senha = document.getElementById('cad-senha').value;
+    const btn = document.querySelector('.btn-cadastro');
 
     if (!nome || !email || !senha) {
-        alert("Por favor, preencha todos os campos.");
+        exibirAvisoFormulario('cadastro-box', 'Por favor, preencha todos os campos do formulário.');
         return;
     }
+
+    // Efeito de carregamento no botão
+    if(btn) { btn.disabled = True; btn.textContent = 'Cadastrando...'; }
 
     fetch(`${API_URL}/cadastro`, {
         method: 'POST',
@@ -150,23 +203,32 @@ function executarCadastro() {
     .then(response => response.json().then(data => ({ status: response.status, body: data })))
     .then(res => {
         if (res.status === 201) {
-            alert(res.body.mensagem);
-            alternarAbasAuth(true); 
+            alternarAbasAuth(true);
+            exibirAvisoFormulario('login-box', 'Conta criada com sucesso! Faça login abaixo.', 'sucesso');
         } else {
-            alert("Erro: " + res.body.erro);
+            exibirAvisoFormulario('cadastro-box', res.body.erro || 'Erro ao efetuar cadastro.');
         }
     })
-    .catch(err => console.error("Erro ao cadastrar:", err));
+    .catch(err => {
+        exibirAvisoFormulario('cadastro-box', 'Sem conexão com o servidor do Monitor Financeiro.');
+        console.error("Erro ao cadastrar:", err);
+    })
+    .finally(() => {
+        if(btn) { btn.disabled = false; btn.textContent = 'Registrar'; }
+    });
 }
 
 function executarLogin() {
     const email = document.getElementById('login-email').value;
     const senha = document.getElementById('login-senha').value;
+    const btn = document.querySelector('.btn-login');
 
     if (!email || !senha) {
-        alert("Preencha o e-mail e a senha.");
+        exibirAvisoFormulario('login-box', 'As credenciais de e-mail e senha são obrigatórias.');
         return;
     }
+
+    if(btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
 
     fetch(`${API_URL}/login`, {
         method: 'POST',
@@ -179,19 +241,20 @@ function executarLogin() {
             localStorage.setItem('token', res.body.token);
             localStorage.setItem('usuario', JSON.stringify(res.body.usuario));
             
-            alert(`Bem-vindo, ${res.body.usuario.nome}!`);
-            
             if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
             if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'block';
             
             carregarHistoricoBanco();
         } else {
-            alert("Erro: " + res.body.erro);
+            exibirAvisoFormulario('login-box', res.body.erro || 'A senha inserida ou usuário estão incorretos.');
         }
     })
     .catch(err => {
-        alert("Erro ao conectar com o backend hospedado. Se for o primeiro acesso, o servidor pode levar até 1 minuto para acordar.");
+        exibirAvisoFormulario('login-box', 'O servidor remoto está acordando. Tente novamente em alguns segundos.');
         console.error("Erro ao fazer login:", err);
+    })
+    .finally(() => {
+        if(btn) { btn.disabled = false; btn.textContent = 'Entrar'; }
     });
 }
 
@@ -201,9 +264,7 @@ function carregarHistoricoBanco() {
     
     fetch(`${API_URL}/transacoes`, {
         method: 'GET',
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
+        headers: { 'Authorization': 'Bearer ' + token }
     })
     .then(response => {
         if (!response.ok) throw new Error('Erro ao buscar dados históricos');
@@ -272,13 +333,10 @@ if (logoutBtn) {
 // --- PROCESSAMENTO E EXIBIÇÃO EM TELA ---
 function processarEExibirDados(data) {
     todasAsTransacoes = data.transacoes || [];
-    
     const badge = document.getElementById('banco-badge');
     if (badge) badge.textContent = data.mensagem || "Extrato Combinado";
-    
     const filterCont = document.getElementById('filter-container');
     if (filterCont) filterCont.classList.remove('hidden');
-    
     filtrarPorBanco();
 }
 

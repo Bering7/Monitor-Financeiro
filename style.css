@@ -519,3 +519,49 @@ td.no-break {
 .logout-button:active {
     transform: scale(0.97);
 }
+
+/* --- ESTILIZAÇÃO DO AVISO DE ERRO EM FORMULÁRIOS (ESTILO INSTAGRAM) --- */
+.form-alert-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    animation: fadeInFormAlert 0.25s ease-out;
+    line-height: 1.4;
+}
+
+.form-alert-box.erro {
+    background-color: #2d1216;
+    border: 1px solid #f75a68;
+    color: #f75a68;
+}
+
+.form-alert-box.sucesso {
+    background-color: #122c23;
+    border: 1px solid #04d361;
+    color: #04d361;
+}
+
+.form-alert-box svg {
+    flex-shrink: 0;
+}
+
+.btn-auth:disabled {
+    background: #1c6139;
+    color: #a8a8b3;
+    cursor: not-allowed;
+}
+
+@keyframes fadeInFormAlert {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
