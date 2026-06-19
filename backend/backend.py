@@ -33,7 +33,8 @@ class Usuario(db.Model):
     __tablename__ = 'usuarios'
     
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nome = db.Column(db.String(100), nullable=False)
+    nome_completo = db.Column(db.String(150), nullable=False) # Mudado para nome_completo (not null)
+    apelido = db.Column(db.String(50), nullable=True)          # Adicionado apelido (null)
     email = db.Column(db.String(100), unique=True, nullable=False)
     senha_hash = db.Column(db.String(255), nullable=False)
     
@@ -43,7 +44,8 @@ class Usuario(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "nome": self.nome,
+            "nome_completo": self.nome_completo,
+            "apelido": self.apelido if self.apelido else self.nome_completo.split()[0], # Fallback amigável
             "email": self.email
         }
 
@@ -102,9 +104,14 @@ def token_requerido(f):
     return decorated
 
 
-# --- MOTOR DE CATEGORIZAÇÃO ---
-def categorizar_descricao(descricao):
+# --- MOTOR DE CATEGORIZAÇÃO INTELIGENTE ---
+def categorizar_descricao(descricao, nome_completo):
     desc = str(descricao).lower()
+    
+    # Identificação Dinâmica: Evita dupla contagem se o nome completo do titular constar na transação
+    if nome_completo and nome_completo.lower() in desc:
+        return 'Transferência Interna'
+        
     if 'mercado' in desc or 'supermercado' in desc or 'ifood' in desc or 'restaurante' in desc or 'padaria' in desc or 'superbom' in desc or 'pannabread' in desc:
         return 'Alimentação'
     elif 'posto' in desc or 'combustivel' in desc or 'uber' in desc or '99app' in desc or 'estapar' in desc:
@@ -160,8 +167,9 @@ def limpa_moeda(valor_str):
 @app.route('/cadastro', methods=['POST'])
 def cadastro():
     dados = request.get_json()
-    if not dados or not dados.get('nome') or not dados.get('email') or not dados.get('senha'):
-        return jsonify({"erro": "Preencha todos os campos obrigatórios"}), 400
+    # Mudado de 'nome' para 'nome_completo'
+    if not dados or not dados.get('nome_completo') or not dados.get('email') or not dados.get('senha'):
+        return jsonify({"erro": "Preencha todos os campos obrigatórios (Nome Completo, E-mail e Senha)"}), 400
         
     email_bruto = dados['email'].strip()
 
@@ -175,8 +183,17 @@ def cadastro():
     if usuario_existente:
         return jsonify({"erro": "Este e-mail já está cadastrado"}), 400
         
+    # Extrai o apelido se houver, senão armazena implicitamente None (null)
+    apelido_bruto = dados.get('apelido')
+    apelido_final = apelido_bruto.strip() if apelido_bruto and apelido_bruto.strip() != "" else None
+
     senha_criptografada = generate_password_hash(dados['senha'])
-    novo_usuario = Usuario(nome=dados['nome'], email=email_alvo, senha_hash=senha_criptografada)
+    novo_usuario = Usuario(
+        nome_completo=dados['nome_completo'].strip(), 
+        apelido=apelido_final,
+        email=email_alvo, 
+        senha_hash=senha_criptografada
+    )
     
     db.session.add(novo_usuario)
     db.session.commit()
@@ -211,8 +228,12 @@ def obtener_transacoes(usuario_atual):
     lista_transacoes = Transacao.query.filter_by(usuario_id=usuario_atual.id).all()
     transacoes_dit = [t.to_dict() for t in lista_transacoes]
     
-    total_entradas = sum(t['valor'] for t in transacoes_dit if t['valor'] > 0)
-    total_saidas = sum(t['valor'] for t in transacoes_dit if t['valor'] < 0)
+    # PROTEÇÃO: Ignora 'Transferência Interna' nos somatórios para não distorcer o fluxo real
+    total_entradas = sum(t['valor'] for t in transacoes_dit if t['valor'] > 0 and t['categoria'] != 'Transferência Interna')
+    total_saidas = sum(t['valor'] for t in transacoes_dit if t['valor'] < 0 and t['categoria'] != 'Transferência Interna')
+    
+    # O saldo geral cruza todas as movimentações brutas (as internas se anulam matematicamente)
+    saldo_geral = sum(t['valor'] for t in transacoes_dit)
     bancos_unicos = list(set(t['banco'] for t in transacoes_dit))
     
     return jsonify({
@@ -220,7 +241,7 @@ def obtener_transacoes(usuario_atual):
         "resumo": {
             "entradas": round(total_entradas, 2),
             "saidas": round(total_saidas, 2),
-            "saldo": round(total_entradas + total_saidas, 2)
+            "saldo": round(saldo_geral, 2)
         },
         "qtd_bancos": len(bancos_unicos),
         "mensagem": ", ".join(sorted(bancos_unicos)) if bancos_unicos else "Nenhum banco"
@@ -235,7 +256,7 @@ def upload_file(usuario_atual):
         return jsonify({"erro": "Nenhum arquivo enviado"}), 400
     
     arquivos = request.files.getlist('file')
-    if not arquivos or arquivos[0].filename == '':
+    if not archivos or arquivos[0].filename == '':
         return jsonify({"erro": "Nenhum arquivo selecionado"}), 400
     
     lista_df_bancos = []
@@ -325,7 +346,9 @@ def upload_file(usuario_atual):
             return jsonify({"erro": "Nenhum dado válido de arquivo CSV extraído."}), 400
             
         df_consolidado = pd.concat(lista_df_bancos, ignore_index=True)
-        df_consolidado['categoria'] = df_consolidado['descricao'].apply(categorizar_descricao)
+        
+        # MUDANÇA: Passando dinamicamente o 'nome_completo' para filtragem anti-duplicidade
+        df_consolidado['categoria'] = df_consolidado['descricao'].apply(lambda d: categorizar_descricao(d, usuario_atual.nome_completo))
         
         # --- MOTOR DE COERÇÃO ANTI-DUPLICADOS ---
         lista_completa_existente = Transacao.query.filter_by(usuario_id=usuario_atual.id).all()
@@ -344,7 +367,7 @@ def upload_file(usuario_atual):
             
             assinatura_nova = (data_r, banco_r, desc_r, round(valor_r, 2))
             
-            if assinatura_nova not in assinaturas_existentes:
+            if  assinatura_nova not in assinaturas_existentes:
                 nova_transacao = Transacao(
                     data=data_r,
                     banco=banco_r,
@@ -362,8 +385,10 @@ def upload_file(usuario_atual):
         lista_completa = Transacao.query.filter_by(usuario_id=usuario_atual.id).all()
         transacoes_dit = [t.to_dict() for t in lista_completa]
         
-        total_entradas = round(sum(t['valor'] for t in transacoes_dit if t['valor'] > 0), 2)
-        total_saidas = round(sum(t['valor'] for t in transacoes_dit if t['valor'] < 0), 2)
+        # AJUSTE NO RETORNO DO UPLOAD: Filtra também 'Transferência Interna' nos cards do front
+        total_entradas = sum(t['valor'] for t in transacoes_dit if t['valor'] > 0 and t['categoria'] != 'Transferência Interna')
+        total_saidas = sum(t['valor'] for t in transacoes_dit if t['valor'] < 0 and t['categoria'] != 'Transferência Interna')
+        saldo_geral = sum(t['valor'] for t in transacoes_dit)
         
         lista_bancos_unicos = sorted(list(set(t['banco'] for t in transacoes_dit)))
         string_bancos = ", ".join(lista_bancos_unicos)
@@ -373,9 +398,9 @@ def upload_file(usuario_atual):
         return jsonify({
             "mensagem": f"Bancos: {string_bancos}",
             "resumo": {
-                "entradas": total_entradas,
-                "saidas": total_saidas,
-                "saldo": round(total_entradas + total_saidas, 2)
+                "entradas": round(total_entradas, 2),
+                "saidas": round(total_saidas, 2),
+                "saldo": round(saldo_geral, 2)
             },
             "transacoes": transacoes_dit,
             "qtd_bancos": len(lista_bancos_unicos)
