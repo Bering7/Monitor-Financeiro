@@ -15,16 +15,16 @@ app = Flask(__name__)
 CORS(app)
 
 # --- CONFIGURAÇÕES DE PASTAS E BANCO DE DADOS ---
-UPLOAD_FOLDER = 'uploads'
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+PASTA_UPLOAD = 'uploads'
+app.config['UPLOAD_FOLDER'] = PASTA_UPLOAD
 
 # Configuração do banco SQL relacional local via SQLite
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///banco.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'sua_chave_secreta_super_segura_aqui'
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+if not os.path.exists(PASTA_UPLOAD):
+    os.makedirs(PASTA_UPLOAD)
 
 db = SQLAlchemy(app)
 
@@ -38,7 +38,7 @@ class Usuario(db.Model):
     email = db.Column(db.String(100), unique=True, nullable=False)
     senha_hash = db.Column(db.String(255), nullable=False)
     
-    # Cria o relacionamento: um usuário pode ter muitas transações
+    # Cria o relacionamento: um usuário pode tener muitas transações
     transacoes = db.relationship('Transacao', backref='dono', lazy=True, cascade="all, delete-orphan")
 
     def to_dict(self):
@@ -76,15 +76,15 @@ class Transacao(db.Model):
 # --- DECORATOR: PROTEÇÃO DE ROTAS VIA JWT ---
 def token_requerido(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorificado(*args, **kwargs):
         token = None
         
         if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            if auth_header.startswith("Bearer "):
-                token = auth_header.split(" ")[1]
+            cabecalho_autenticacao = request.headers['Authorization']
+            if cabecalho_autenticacao.startswith("Bearer "):
+                token = cabecalho_autenticacao.split(" ")[1]
             else:
-                token = auth_header
+                token = cabecalho_autenticacao
 
         if not token:
             return jsonify({"erro": "Token de autenticação ausente ou inválido!"}), 401
@@ -101,7 +101,7 @@ def token_requerido(f):
 
         return f(usuario_atual, *args, **kwargs)
         
-    return decorated
+    return decorificado
 
 
 # --- MOTOR DE CATEGORIZAÇÃO INTELIGENTE ---
@@ -224,7 +224,7 @@ def login():
 # --- BUSCAR TRANSAÇÕES HISTÓRICAS DO BANCO ---
 @app.route('/transacoes', methods=['GET'])
 @token_requerido
-def obtener_transacoes(usuario_atual):
+def obter_transacoes(usuario_atual):
     lista_transacoes = Transacao.query.filter_by(usuario_id=usuario_atual.id).all()
     transacoes_dit = [t.to_dict() for t in lista_transacoes]
     
@@ -251,24 +251,24 @@ def obtener_transacoes(usuario_atual):
 # --- ROTA DE EXTRATOS (PROCESSA E SALVA EVITANDO DUPLICADAS NO BANCO) ---
 @app.route('/upload', methods=['POST'])
 @token_requerido  
-def upload_file(usuario_atual):
+def enviar_arquivo(usuario_atual):
     if 'file' not in request.files:
         return jsonify({"erro": "Nenhum arquivo enviado"}), 400
     
     arquivos = request.files.getlist('file')
-    if not archivos or arquivos[0].filename == '':
+    if not arquivos or arquivos[0].filename == '':
         return jsonify({"erro": "Nenhum arquivo selecionado"}), 400
     
     lista_df_bancos = []
     bancos_processados = set()
     
     try:
-        for file in arquivos:
-            if not file.filename.endswith('.csv'):
+        for arquivo in arquivos:
+            if not arquivo.filename.endswith('.csv'):
                 continue
                 
-            caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(caminho_arquivo)
+            caminho_arquivo = os.path.join(app.config['UPLOAD_FOLDER'], arquivo.filename)
+            arquivo.save(caminho_arquivo)
             
             linhas_pular = 0
             encoding_correto = 'utf-8'
@@ -358,16 +358,16 @@ def upload_file(usuario_atual):
         }
         
         novas_adicionadas = 0
-        for _, Server_Row in df_consolidado.iterrows():
-            data_r = str(Server_Row['data']).strip()
-            banco_r = str(Server_Row['banco']).strip()
-            desc_r = str(Server_Row['descricao']).strip()
-            valor_r = float(Server_Row['valor'])
-            cat_r = str(Server_Row['categoria']).strip()
+        for _, linha_servidor in df_consolidado.iterrows():
+            data_r = str(linha_servidor['data']).strip()
+            banco_r = str(linha_servidor['banco']).strip()
+            desc_r = str(linha_servidor['descricao']).strip()
+            valor_r = float(linha_servidor['valor'])
+            cat_r = str(linha_servidor['categoria']).strip()
             
             assinatura_nova = (data_r, banco_r, desc_r, round(valor_r, 2))
             
-            if  assinatura_nova not in assinaturas_existentes:
+            if assinatura_nova not in assinaturas_existentes:
                 nova_transacao = Transacao(
                     data=data_r,
                     banco=banco_r,
@@ -416,3 +416,5 @@ if __name__ == '__main__':
         db.create_all()
     porta = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=porta)
+
+# comentario só pra fazer o commit
