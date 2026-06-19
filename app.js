@@ -10,6 +10,7 @@ const txtSaidas = document.getElementById('total-saidas');
 const txtSaldo = document.getElementById('saldo-final');
 const tableContainer = document.getElementById('table-container');
 const transactionsBody = document.getElementById('transactions-body');
+const emptyState = document.getElementById('empty-state'); // NOVO: Referência para a tela vazia
 
 // ARMAZENAMENTO GLOBAL DOS DADOS PARA O FILTRO FUNCIONAR EM TEMPO REAL
 let todasAsTransacoes = []; 
@@ -21,7 +22,6 @@ MyInvisibleInput.multiple = true;
 
 // --- AUXILIAR: EXIBIR MENSAGEM DE ERRO ESTILO INSTAGRAM ---
 function exibirAvisoFormulario(containerId, mensagem, tipo = 'erro') {
-    // Remove qualquer aviso existente antes de criar um novo
     removerAvisosFormulario(containerId);
 
     const container = document.getElementById(containerId);
@@ -30,7 +30,6 @@ function exibirAvisoFormulario(containerId, mensagem, tipo = 'erro') {
     const divAviso = document.createElement('div');
     divAviso.className = `form-alert-box ${tipo}`;
     
-    // Ícone de atenção padrão de formulários
     divAviso.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
@@ -40,7 +39,6 @@ function exibirAvisoFormulario(containerId, mensagem, tipo = 'erro') {
         <span>${mensagem}</span>
     `;
 
-    // Insere o aviso logo após o subtítulo/título da caixa
     const subtitulo = container.querySelector('.auth-subtitle') || container.querySelector('h2');
     if (subtitulo) {
         subtitulo.insertAdjacentElement('afterend', divAviso);
@@ -56,7 +54,6 @@ function removerAvisosFormulario(containerId) {
 
 // --- ATRIBUIR EVENTOS ASSIM QUE A PÁGINA CARREGAR ---
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Verificação de sessão ativa permanente
     const token = localStorage.getItem('token');
     if (token) {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
@@ -67,10 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'none';
     }
 
-    // 2. Vinculação única e limpa dos botões (Ignora o onclick do HTML antigo para evitar repetições)
     const btnEntrar = document.querySelector('.btn-login');
     if (btnEntrar) {
-        btnEntrar.removeAttribute('onclick'); // Prevenção secundária contra duplicações
+        btnEntrar.removeAttribute('onclick'); 
         btnEntrar.addEventListener('click', (e) => {
             e.preventDefault();
             executarLogin();
@@ -84,14 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             executarCadastro();
         });
+    }
 
     // Atalho de teclado: Enter no campo de senha do Cadastro
     const campoSenhaCad = document.getElementById('cad-senha');
     if (campoSenhaCad) {
         campoSenhaCad.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') executarCadastro();
-            });
-        }
+        });
     }
 
     // Limpar erros da tela de login ao começar a digitar novamente
@@ -105,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', () => removerAvisosFormulario('cadastro-box'));
     });
 
-    // Atalho de teclado: Enter no campo de senha
+    // Atalho de teclado: Enter no campo de senha do Login
     const campoSenhaLogin = document.getElementById('login-senha');
     if (campoSenhaLogin) {
         campoSenhaLogin.addEventListener('keypress', (e) => {
@@ -200,7 +196,6 @@ function executarCadastro() {
         return;
     }
 
-    // Corrigido de "True" (Python) para "true" (JavaScript)
     if(btn) { btn.disabled = true; btn.textContent = 'Cadastrando...'; }
 
     fetch(`${API_URL}/cadastro`, {
@@ -317,6 +312,7 @@ function executarLogout() {
     }
     if(dashboardRow) dashboardRow.style.display = 'none';
     if(tableContainer) tableContainer.classList.add('hidden');
+    if(emptyState) emptyState.classList.add('hidden'); // Esconde o aviso de lista vazia
     
     const filterCont = document.getElementById('filter-container');
     if(filterCont) filterCont.classList.add('hidden');
@@ -324,6 +320,7 @@ function executarLogout() {
     if(document.getElementById('filter-nubank')) document.getElementById('filter-nubank').checked = true;
     if(document.getElementById('filter-inter')) document.getElementById('filter-inter').checked = true;
     if(document.getElementById('filter-picpay')) document.getElementById('filter-picpay').checked = true;
+    if(document.getElementById('filter-period')) document.getElementById('filter-period').value = '30'; // Reseta para 30 dias
 
     if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'none';
     if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'block';
@@ -338,6 +335,13 @@ if (logoutBtn) {
     });
 }
 
+// --- NOVO: FUNÇÃO PARA CONVERTER DATA DD/MM/YYYY PARA FORMATO DE CÁLCULO ---
+function converterDataBrasileira(dataStr) {
+    const partes = dataStr.split('/');
+    // No JavaScript, o mês começa no 0 (Janeiro = 0, Dezembro = 11), por isso o "- 1"
+    return new Date(partes[2], partes[1] - 1, partes[0]);
+}
+
 // --- PROCESSAMENTO E EXIBIÇÃO EM TELA ---
 function processarEExibirDados(data) {
     todasAsTransacoes = data.transacoes || [];
@@ -345,24 +349,66 @@ function processarEExibirDados(data) {
     if (badge) badge.textContent = data.mensagem || "Extrato Combinado";
     const filterCont = document.getElementById('filter-container');
     if (filterCont) filterCont.classList.remove('hidden');
-    filtrarPorBanco();
+    
+    filtrarPorBanco(); // Essa função agora cuida de Bancos + Datas
 }
 
+// --- ATUALIZADO: AGORA FILTRA POR BANCO E TAMBÉM POR DATA ---
 function filtrarPorBanco() {
+    // 1. Descobre quais bancos estão marcados
     const bancosSelecionados = [];
     if (document.getElementById('filter-nubank') && document.getElementById('filter-nubank').checked) bancosSelecionados.push('Nubank');
     if (document.getElementById('filter-inter') && document.getElementById('filter-inter').checked) bancosSelecionados.push('Inter');
     if (document.getElementById('filter-picpay') && document.getElementById('filter-picpay').checked) bancosSelecionados.push('PicPay');
 
-    const transacoesFiltradas = todasAsTransacoes.filter(item => bancosSelecionados.includes(item.banco));
+    // 2. Descobre qual período de tempo foi selecionado
+    const selectPeriodo = document.getElementById('filter-period');
+    const periodoEscolhido = selectPeriodo ? selectPeriodo.value : '30';
+
+    // 3. Calcula a Data Limite (Hoje menos a quantidade de dias selecionada)
+    const dataAtual = new Date();
+    let dataLimite = new Date();
+    if (periodoEscolhido !== 'all') {
+        dataLimite.setDate(dataAtual.getDate() - parseInt(periodoEscolhido));
+    }
+
+    // 4. Faz a filtragem combinada
+    const transacoesFiltradas = todasAsTransacoes.filter(item => {
+        // Checa o banco
+        const passaNoBanco = bancosSelecionados.includes(item.banco);
+        
+        // Checa a data
+        let passaNaData = true;
+        if (periodoEscolhido !== 'all') {
+            const dataDaTransacao = converterDataBrasileira(item.data);
+            passaNaData = dataDaTransacao >= dataLimite;
+        }
+
+        return passaNoBanco && passaNaData;
+    });
+
+    // 5. Manda para a tela
     exibirDadosNaTela(transacoesFiltradas);
 }
 
+// --- ATUALIZADO: GERENCIA A TELA DE ESTADO VAZIO ---
 function exibirDadosNaTela(transacoes) {
+    
+    // Se não houver nada para mostrar, exibe a tela de Empty State
+    if (transacoes.length === 0) {
+        if(dashboardRow) dashboardRow.classList.add('hidden');
+        if(tableContainer) tableContainer.classList.add('hidden');
+        if(emptyState) emptyState.classList.remove('hidden');
+        return; 
+    }
+
+    // Se houver transações, esconde o Empty State e mostra os painéis
+    if(emptyState) emptyState.classList.add('hidden');
     if(dashboardRow) {
         dashboardRow.classList.remove('hidden');
         dashboardRow.style.display = 'flex';
     }
+    if(tableContainer) tableContainer.classList.remove('hidden');
 
     let entradas = 0;
     let saidas = 0;
@@ -399,7 +445,6 @@ function exibirDadosNaTela(transacoes) {
 
     if(transactionsBody) {
         transactionsBody.innerHTML = '';
-        if(tableContainer) tableContainer.classList.remove('hidden');
         const gastosPorCategoria = {};
 
         transacoes.forEach(item => {

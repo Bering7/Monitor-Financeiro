@@ -52,7 +52,9 @@
             </p>
         </div>
 
-    </div> <div id="dashboard-container" style="display: none;">
+    </div> 
+
+    <div id="dashboard-container" style="display: none;">
         <div class="container">
             
             <header class="dashboard-header">
@@ -76,7 +78,22 @@
             </div>
 
             <div id="filter-container" class="hidden">
-                <h3>Filtrar por Banco:</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px;">
+                    <h3>Filtrar Extrato:</h3>
+                    
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label for="filter-period" style="font-size: 0.9rem; color: #a8a8b3;">Período:</label>
+                        <select id="filter-period" onchange="filtrarPorBanco()" style="padding: 8px 12px; border-radius: 6px; background-color: #202024; color: #e1e1e6; border: 1px solid #323238; outline: none; cursor: pointer;">
+                            <option value="30" selected>Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="180">Últimos 180 dias</option>
+                            <option value="270">Últimos 270 dias</option>
+                            <option value="365">Último Ano</option>
+                            <option value="all">Extrato Completo</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="filter-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="filter-nubank" value="Nubank" checked onchange="filtrarPorBanco()">
@@ -91,6 +108,15 @@
                         <span class="custom-checkbox"></span> PicPay
                     </label>
                 </div>
+            </div>
+
+            <div id="empty-state" class="hidden" style="text-align: center; padding: 60px 20px; background: #202024; border-radius: 8px; margin-top: 20px; border: 1px dashed #323238;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#7c7c8a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 15px;">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <h3 style="color: #e1e1e6; margin-bottom: 8px;">Nenhuma movimentação encontrada</h3>
+                <p style="color: #a8a8b3; font-size: 0.95rem; line-height: 1.5;">Não há registros para o período e bancos selecionados.<br>Altere os filtros acima ou faça upload de novos extratos.</p>
             </div>
 
             <div id="dashboard-row" class="hidden">
@@ -128,6 +154,7 @@
                     <thead>
                         <tr>
                             <th>Data</th>
+                            <th>Banco</th>
                             <th>Descrição</th>
                             <th>Categoria</th>
                             <th style="text-align: right;">Valor</th>
@@ -140,7 +167,10 @@
 
             <div id="status-message" class="hidden"></div>
 
-        </div> </div> <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        </div> 
+    </div> 
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="./app.js"></script>
 </body>
 </html>
