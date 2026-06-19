@@ -208,12 +208,14 @@ function alternarAbasAuth(mostrarLogin) {
 }
 
 function executarCadastro() {
-    const nome_completo = document.getElementById('cad-nome').value;
-    const apelido = document.getElementById('cad-apelido') ? document.getElementById('cad-apelido').value : '';
-    const email = document.getElementById('cad-email').value;
-    const senha = document.getElementById('cad-senha').value;
+    // Pegando os valores limpando espaços extras nas pontas (.trim())
+    const nome_completo = document.getElementById('cad-nome') ? document.getElementById('cad-nome').value.trim() : '';
+    const apelido = document.getElementById('cad-apelido') ? document.getElementById('cad-apelido').value.trim() : '';
+    const email = document.getElementById('cad-email') ? document.getElementById('cad-email').value.trim() : '';
+    const senha = document.getElementById('cad-senha') ? document.getElementById('cad-senha').value : '';
     const btn = document.querySelector('.btn-cadastro');
 
+    // Validação direta para garantir que nenhum deles chegue vazio ao backend
     if (!nome_completo || !email || !senha) {
         exibirAvisoFormulario('cadastro-box', 'Por favor, preencha todos os campos obrigatórios.');
         return;
@@ -224,7 +226,7 @@ function executarCadastro() {
     fetch(`${API_URL}/cadastro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome_completo, apelido, email, senha }) // Enviando campos corretos
+        body: JSON.stringify({ nome_completo, apelido, email, senha })
     })
     .then(response => response.json().then(data => ({ status: response.status, body: data })))
     .then(res => {
