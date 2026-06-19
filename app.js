@@ -208,20 +208,29 @@ function alternarAbasAuth(mostrarLogin) {
 }
 
 function executarCadastro() {
-    // Pegando os valores limpando espaços extras nas pontas (.trim())
-    const nome_completo = document.getElementById('cad-nome') ? document.getElementById('cad-nome').value.trim() : '';
-    const apelido = document.getElementById('cad-apelido') ? document.getElementById('cad-apelido').value.trim() : '';
-    const email = document.getElementById('cad-email') ? document.getElementById('cad-email').value.trim() : '';
-    const senha = document.getElementById('cad-senha') ? document.getElementById('cad-senha').value : '';
-    const btn = document.querySelector('.btn-cadastro');
+    // Busca TODOS os inputs que estão dentro do container de cadastro
+    const caixaCadastro = document.getElementById('cadastro-box');
+    if (!caixaCadastro) return;
 
-    // Validação direta para garantir que nenhum deles chegue vazio ao backend
+    const inputs = caixaCadastro.querySelectorAll('input');
+    
+    // Mapeia os valores pela ordem física exata que aparecem no formulário
+    const nome_completo = inputs[0] ? inputs[0].value.trim() : '';
+    const apelido = inputs[1] ? inputs[1].value.trim() : '';
+    const email = inputs[2] ? inputs[2].value.trim() : '';
+    const senha = inputs[3] ? inputs[3].value : '';
+    const btn = caixaCadastro.querySelector('.btn-cadastro');
+
+    // Validação direta sem chabu
     if (!nome_completo || !email || !senha) {
         exibirAvisoFormulario('cadastro-box', 'Por favor, preencha todos os campos obrigatórios.');
         return;
     }
 
-    if(btn) { btn.disabled = true; btn.textContent = 'Cadastrando...'; }
+    if (btn) { 
+        btn.disabled = true; 
+        btn.textContent = 'Cadastrando...'; 
+    }
 
     fetch(`${API_URL}/cadastro`, {
         method: 'POST',
@@ -242,7 +251,10 @@ function executarCadastro() {
         console.error("Erro ao cadastrar:", err);
     })
     .finally(() => {
-        if(btn) { btn.disabled = false; btn.textContent = 'Registrar'; }
+        if (btn) { 
+            btn.disabled = false; 
+            btn.textContent = 'REGISTRAR'; 
+        }
     });
 }
 
