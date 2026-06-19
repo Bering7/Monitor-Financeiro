@@ -10,7 +10,7 @@ const txtSaidas = document.getElementById('total-saidas');
 const txtSaldo = document.getElementById('saldo-final');
 const tableContainer = document.getElementById('table-container');
 const transactionsBody = document.getElementById('transactions-body');
-const emptyState = document.getElementById('empty-state'); // NOVO: Referência para a tela vazia
+const emptyState = document.getElementById('empty-state'); 
 
 // ARMAZENAMENTO GLOBAL DOS DADOS PARA O FILTRO FUNCIONAR EM TEMPO REAL
 let todasAsTransacoes = []; 
@@ -55,6 +55,13 @@ function removerAvisosFormulario(containerId) {
 // --- ATRIBUIR EVENTOS ASSIM QUE A PÁGINA CARREGAR ---
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
+    
+    // Força o dropdown a começar em "Extrato Completo" para evitar que dados sumam no login
+    const selectPeriodo = document.getElementById('filter-period');
+    if (selectPeriodo) {
+        selectPeriodo.value = 'all';
+    }
+
     if (token) {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
         if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'block';
@@ -82,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Atalho de teclado: Enter no campo de senha do Cadastro
     const campoSenhaCad = document.getElementById('cad-senha');
     if (campoSenhaCad) {
         campoSenhaCad.addEventListener('keypress', (e) => {
@@ -90,7 +96,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Limpar erros da tela de login ao começar a digitar novamente
     const camposLogin = document.querySelectorAll('#login-box input');
     camposLogin.forEach(input => {
         input.addEventListener('input', () => removerAvisosFormulario('login-box'));
@@ -101,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', () => removerAvisosFormulario('cadastro-box'));
     });
 
-    // Atalho de teclado: Enter no campo de senha do Login
     const campoSenhaLogin = document.getElementById('login-senha');
     if (campoSenhaLogin) {
         campoSenhaLogin.addEventListener('keypress', (e) => {
@@ -312,7 +316,7 @@ function executarLogout() {
     }
     if(dashboardRow) dashboardRow.style.display = 'none';
     if(tableContainer) tableContainer.classList.add('hidden');
-    if(emptyState) emptyState.classList.add('hidden'); // Esconde o aviso de lista vazia
+    if(emptyState) emptyState.classList.add('hidden'); 
     
     const filterCont = document.getElementById('filter-container');
     if(filterCont) filterCont.classList.add('hidden');
@@ -320,7 +324,7 @@ function executarLogout() {
     if(document.getElementById('filter-nubank')) document.getElementById('filter-nubank').checked = true;
     if(document.getElementById('filter-inter')) document.getElementById('filter-inter').checked = true;
     if(document.getElementById('filter-picpay')) document.getElementById('filter-picpay').checked = true;
-    if(document.getElementById('filter-period')) document.getElementById('filter-period').value = '30'; // Reseta para 30 dias
+    if(document.getElementById('filter-period')) document.getElementById('filter-period').value = 'all'; 
 
     if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'none';
     if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'block';
@@ -335,66 +339,81 @@ if (logoutBtn) {
     });
 }
 
-// --- NOVO: FUNÇÃO PARA CONVERTER DATA DD/MM/YYYY PARA FORMATO DE CÁLCULO ---
-function converterDataBrasileira(dataStr) {
-    const partes = dataStr.split('/');
-    // No JavaScript, o mês começa no 0 (Janeiro = 0, Dezembro = 11), por isso o "- 1"
-    return new Date(partes[2], partes[1] - 1, partes[0]);
+// --- ATUALIZADO: CONVERTE TANTO FORMATOS COM "/" QUANTO COM "-" ---
+function converterDataParaObjeto(dataStr) {
+    if (!dataStr) return new Date();
+    
+    // Tratamento caso a data venha com hífen (Ex: PicPay original 2026-06-14)
+    if (dataStr.includes('-')) {
+        const partes = dataStr.split('-');
+        return new Date(partes[0], partes[1] - 1, partes[2]);
+    }
+    
+    // Tratamento caso venha com barras (Ex: Nubank/Inter 14/06/2026)
+    if (dataStr.includes('/')) {
+        const partes = dataStr.split('/');
+        return new Date(partes[2], partes[1] - 1, partes[0]);
+    }
+    
+    return new Date(dataStr);
 }
 
 // --- PROCESSAMENTO E EXIBIÇÃO EM TELA ---
 function processarEExibirDados(data) {
-    todasAsTransacoes = data.transacoes || [];
+    const transacoesDoBanco = data.transacoes || [];
+    
+    // ANTI-DUPLICAÇÃO TRAVA CLIENT-SIDE: Limpa clones criados por múltiplos uploads de teste no banco
+    const registrosUnicos = new Set();
+    todasAsTransacoes = transacoesDoBanco.filter(item => {
+        const hashId = `${item.data}_${item.banco}_${item.descricao}_${item.valor}`;
+        if (registrosUnicos.has(hashId)) {
+            return false; // Ignora e deleta a cópia inflada
+        }
+        registrosUnicos.add(hashId);
+        return true; // Mantém a linha original
+    });
+
     const badge = document.getElementById('banco-badge');
     if (badge) badge.textContent = data.mensagem || "Extrato Combinado";
     const filterCont = document.getElementById('filter-container');
     if (filterCont) filterCont.classList.remove('hidden');
     
-    filtrarPorBanco(); // Essa função agora cuida de Bancos + Datas
+    filtrarPorBanco(); 
 }
 
-// --- ATUALIZADO: AGORA FILTRA POR BANCO E TAMBÉM POR DATA ---
+// --- FILTRAGEM COMBINADA SEM BUG DE FORMATO DE DATA ---
 function filtrarPorBanco() {
-    // 1. Descobre quais bancos estão marcados
     const bancosSelecionados = [];
     if (document.getElementById('filter-nubank') && document.getElementById('filter-nubank').checked) bancosSelecionados.push('Nubank');
     if (document.getElementById('filter-inter') && document.getElementById('filter-inter').checked) bancosSelecionados.push('Inter');
     if (document.getElementById('filter-picpay') && document.getElementById('filter-picpay').checked) bancosSelecionados.push('PicPay');
 
-    // 2. Descobre qual período de tempo foi selecionado
     const selectPeriodo = document.getElementById('filter-period');
-    const periodoEscolhido = selectPeriodo ? selectPeriodo.value : '30';
+    const periodoEscolhido = selectPeriodo ? selectPeriodo.value : 'all';
 
-    // 3. Calcula a Data Limite (Hoje menos a quantidade de dias selecionada)
     const dataAtual = new Date();
     let dataLimite = new Date();
     if (periodoEscolhido !== 'all') {
         dataLimite.setDate(dataAtual.getDate() - parseInt(periodoEscolhido));
     }
 
-    // 4. Faz a filtragem combinada
     const transacoesFiltradas = todasAsTransacoes.filter(item => {
-        // Checa o banco
         const passaNoBanco = bancosSelecionados.includes(item.banco);
         
-        // Checa a data
         let passaNaData = true;
         if (periodoEscolhido !== 'all') {
-            const dataDaTransacao = converterDataBrasileira(item.data);
+            const dataDaTransacao = converterDataParaObjeto(item.data);
             passaNaData = dataDaTransacao >= dataLimite;
         }
 
         return passaNoBanco && passaNaData;
     });
 
-    // 5. Manda para a tela
     exibirDadosNaTela(transacoesFiltradas);
 }
 
-// --- ATUALIZADO: GERENCIA A TELA DE ESTADO VAZIO ---
+// --- RENDEREZAÇÃO SEGURA DOS SOMARES MATEMÁTICOS ---
 function exibirDadosNaTela(transacoes) {
-    
-    // Se não houver nada para mostrar, exibe a tela de Empty State
     if (transacoes.length === 0) {
         if(dashboardRow) dashboardRow.classList.add('hidden');
         if(tableContainer) tableContainer.classList.add('hidden');
@@ -402,7 +421,6 @@ function exibirDadosNaTela(transacoes) {
         return; 
     }
 
-    // Se houver transações, esconde o Empty State e mostra os painéis
     if(emptyState) emptyState.classList.add('hidden');
     if(dashboardRow) {
         dashboardRow.classList.remove('hidden');
@@ -414,10 +432,14 @@ function exibirDadosNaTela(transacoes) {
     let saidas = 0;
     
     transacoes.forEach(item => {
-        if (item.valor >= 0) {
-            entradas += item.valor;
+        // Força conversão explícita para float para evitar erros de concatenação de strings
+        const valorNum = parseFloat(item.valor);
+        if (isNaN(valorNum)) return;
+
+        if (valorNum >= 0) {
+            entradas += valorNum;
         } else {
-            saidas += item.valor;
+            saidas += valorNum;
         }
     });
     
@@ -450,8 +472,10 @@ function exibirDadosNaTela(transacoes) {
         transacoes.forEach(item => {
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid #323238';
-            const corValor = item.valor >= 0 ? '#04d361' : '#f75a68';
-            const valorFormatado = item.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            const valorNum = parseFloat(item.valor);
+            const corValor = valorNum >= 0 ? '#04d361' : '#f75a68';
+            const valorFormatado = valorNum.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
             let corBadgeBanco = '#820ad1'; 
             if (item.banco === 'Inter') corBadgeBanco = '#ff7a00';
@@ -468,9 +492,9 @@ function exibirDadosNaTela(transacoes) {
             `;
             transactionsBody.appendChild(tr);
 
-            if (item.valor < 0) {
+            if (valorNum < 0) {
                 const cat = item.categoria || 'Outros';
-                gastosPorCategoria[cat] = (gastosPorCategoria[cat] || 0) + Math.abs(item.valor);
+                gastosPorCategoria[cat] = (gastosPorCategoria[cat] || 0) + Math.abs(valorNum);
             }
         });
 
