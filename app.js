@@ -52,6 +52,23 @@ function removerAvisosFormulario(containerId) {
     if (avisoAntigo) avisoAntigo.remove();
 }
 
+// --- AUXILIAR: ATUALIZAR SAUDAÇÃO COM O APELIDO ---
+function atualizarSaudacao() {
+    const usuarioStr = localStorage.getItem('usuario');
+    if (usuarioStr) {
+        try {
+            const usuario = JSON.parse(usuarioStr);
+            const titulo = document.querySelector('.dashboard-header h1');
+            if (titulo) {
+                // Usa o apelido, se não existir faz fallback de segurança
+                titulo.textContent = `Olá, ${usuario.apelido || usuario.nome_completo.split(' ')[0]}!`;
+            }
+        } catch (e) {
+            console.error("Erro ao ler usuário do localStorage", e);
+        }
+    }
+}
+
 // --- ATRIBUIR EVENTOS ASSIM QUE A PÁGINA CARREGAR ---
 document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('token');
@@ -65,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (token) {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
         if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'block';
+        atualizarSaudacao();
         carregarHistoricoBanco();
     } else {
         if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'block';
@@ -190,13 +208,14 @@ function alternarAbasAuth(mostrarLogin) {
 }
 
 function executarCadastro() {
-    const nome = document.getElementById('cad-nome').value;
+    const nome_completo = document.getElementById('cad-nome').value;
+    const apelido = document.getElementById('cad-apelido') ? document.getElementById('cad-apelido').value : '';
     const email = document.getElementById('cad-email').value;
     const senha = document.getElementById('cad-senha').value;
     const btn = document.querySelector('.btn-cadastro');
 
-    if (!nome || !email || !senha) {
-        exibirAvisoFormulario('cadastro-box', 'Por favor, preencha todos os campos do formulário.');
+    if (!nome_completo || !email || !senha) {
+        exibirAvisoFormulario('cadastro-box', 'Por favor, preencha todos os campos obrigatórios.');
         return;
     }
 
@@ -205,7 +224,7 @@ function executarCadastro() {
     fetch(`${API_URL}/cadastro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, email, senha })
+        body: JSON.stringify({ nome_completo, apelido, email, senha }) // Enviando campos corretos
     })
     .then(response => response.json().then(data => ({ status: response.status, body: data })))
     .then(res => {
@@ -251,6 +270,7 @@ function executarLogin() {
             if(document.getElementById('auth-container')) document.getElementById('auth-container').style.display = 'none';
             if(document.getElementById('dashboard-container')) document.getElementById('dashboard-container').style.display = 'block';
             
+            atualizarSaudacao();
             carregarHistoricoBanco();
         } else {
             exibirAvisoFormulario('login-box', res.body.erro || 'A senha inserida ou usuário estão incorretos.');
@@ -298,6 +318,10 @@ function executarLogout() {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     todasAsTransacoes = [];
+
+    // Restaura o título padrão ao sair
+    const titulo = document.querySelector('.dashboard-header h1');
+    if (titulo) titulo.textContent = 'Meu Monitor Financeiro';
 
     if (myChart) {
         myChart.destroy();
