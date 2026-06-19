@@ -84,6 +84,14 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             executarCadastro();
         });
+
+    // Atalho de teclado: Enter no campo de senha do Cadastro
+    const campoSenhaCad = document.getElementById('cad-senha');
+    if (campoSenhaCad) {
+        campoSenhaCad.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') executarCadastro();
+            });
+        }
     }
 
     // Limpar erros da tela de login ao começar a digitar novamente
@@ -192,8 +200,8 @@ function executarCadastro() {
         return;
     }
 
-    // Efeito de carregamento no botão
-    if(btn) { btn.disabled = True; btn.textContent = 'Cadastrando...'; }
+    // Corrigido de "True" (Python) para "true" (JavaScript)
+    if(btn) { btn.disabled = true; btn.textContent = 'Cadastrando...'; }
 
     fetch(`${API_URL}/cadastro`, {
         method: 'POST',
