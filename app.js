@@ -10,7 +10,38 @@ const txtSaidas = document.getElementById('total-saidas');
 const txtSaldo = document.getElementById('saldo-final');
 const tableContainer = document.getElementById('table-container');
 const transactionsBody = document.getElementById('transactions-body');
-const emptyState = document.getElementById('empty-state'); 
+const emptyState = document.getElementById('empty-state');
+
+// CONFIGURAÇÃO DO MODO ESCURO / CLARO
+document.addEventListener("DOMContentLoaded", () => {
+    const themeToggleBtn = document.getElementById("theme-toggle");
+    
+    if (!themeToggleBtn) return; // Segurança caso o botão não exista na tela atual
+
+    // 1. Verifica se o usuário já tinha uma preferência salva anteriormente
+    const temaSalvo = localStorage.getItem("tema");
+
+    if (temaSalvo === "claro") {
+        document.body.classList.add("light-theme");
+        themeToggleBtn.textContent = "🌙"; // Se está claro, mostra a lua para mudar pro escuro
+    } else {
+        themeToggleBtn.textContent = "☀️"; // Se está escuro, mostra o sol para mudar pro claro
+    }
+
+    // 2. Escuta o clique do botão para alternar o tema
+    themeToggleBtn.addEventListener("click", () => {
+        document.body.classList.toggle("light-theme");
+
+        // Verifica se a classe foi aplicada para salvar o estado atual
+        if (document.body.classList.contains("light-theme")) {
+            localStorage.setItem("tema", "claro");
+            themeToggleBtn.textContent = "🌙";
+        } else {
+            localStorage.setItem("tema", "escuro");
+            themeToggleBtn.textContent = "☀️";
+        }
+    });
+});
 
 // ARMAZENAMENTO GLOBAL DOS DADOS PARA O FILTRO FUNCIONAR EM TEMPO REAL
 let todasAsTransacoes = []; 
