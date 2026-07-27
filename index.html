@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Financeiro</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Fonte do Google para deixar o design elegante -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Biblioteca Chart.js para os gráficos futuros -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="top-header">
+            <h1 style="display: flex; align-items: center; gap: 8px;">
+                Orçamento 
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </h1>
+            <div class="header-actions">
+                <button class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                </button>
+                <div class="date-selector">
+                    <button>&lt;</button>
+                    <span>Julho de 2026</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Cards de Resumo -->
+        <section class="summary-cards">
+            <div class="card">
+                <div class="card-header">
+                    <span class="label text-green" style="display: flex; align-items: center; gap: 4px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line></svg>
+                        RECEITA
+                    </span>
+                </div>
+                <h2 class="value text-green" id="card-receita">R$ 0,00</h2>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <span class="label text-blue" style="display: flex; align-items: center; gap: 4px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                        INVESTIR
+                    </span>
+                    <button class="btn-ajustar" onclick="abrirModal('modal-investir')">
+                        Ajustar 
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 2px; vertical-align: middle;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                    </button>
+                </div>
+                <h2 class="value text-blue" id="card-investir">R$ 0,00</h2>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="label text-red" style="display: flex; align-items: center; gap: 4px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="8 12 12 16 16 12"></polyline><line x1="12" y1="8" x2="12" y2="16"></line></svg>
+                        DESPESAS
+                    </span>
+                </div>
+                <h2 class="value text-red" id="card-despesas">R$ 0,00</h2>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span class="label text-dark" style="display: flex; align-items: center; gap: 4px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                        SALDO
+                    </span>
+                </div>
+                <h2 class="value text-dark" id="card-saldo">R$ 0,00</h2>
+            </div>
+        </section>
+
+        <!-- Navegação (Pílulas) -->
+        <nav class="tabs-container">
+            <button class="tab-btn active" data-tab="receita">Receita</button>
+            <button class="tab-btn" data-tab="despesa-fixa">Despesa fixa</button>
+            <button class="tab-btn" data-tab="despesa-variavel">Despesa variável</button>
+        </nav>
+
+        <!-- Área Principal (Tabela + Gráfico) -->
+        <main class="main-content">
+            <!-- Coluna da Esquerda: Lista de Itens -->
+            <div class="list-section">
+                <div class="list-header">
+                    <h3 id="titulo-aba">Receitas</h3>
+                    <div class="list-actions">
+                        <!-- Botões atualizados com a nova classe -->
+                        <button class="btn-action-list">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                            Filtro
+                        </button>
+                        <button class="btn-action-list" id="btn-adicionar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Adicionar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="list-body" id="list-container">
+                    <div class="empty-state">
+                        <p>Sem dados neste período.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna da Direita: Gráfico -->
+            <div class="chart-section">
+                <div class="empty-state" id="chart-empty">
+                    <p>Sem dados para o gráfico ainda</p>
+                </div>
+                <canvas id="meuGrafico" style="display: none;"></canvas>
+                <div id="chart-legend" class="chart-legend"></div>
+            </div>
+        </main>
+
+    <!-- ================= MODAIS ================= -->
+
+    <!-- Modal: Nova Receita -->
+    <div class="modal-overlay" id="modal-receita">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Receita</h2>
+                <button class="btn-close" onclick="fecharModal('modal-receita')">×</button>
+            </div>
+            <p class="modal-subtitle">Lançamento deste mês.</p>
+            <form id="form-receita" class="modal-form">
+                <label>Data</label>
+                <input type="date" id="rec-data" required>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="rec-futuro">
+                    <div class="checkbox-text">
+                        <label for="rec-futuro">Recebimento futuro</label>
+                        <span>Não conta na sua receita até você marcar como recebido.</span>
+                    </div>
+                </div>
+
+                <label>Valor</label>
+                <input type="text" id="rec-valor" placeholder="R$ 0,00" required>
+
+                <label>Descrição</label>
+                <input type="text" id="rec-descricao" placeholder="Ex.: Mercado, Salário..." required>
+
+                <label>Tipo de renda</label>
+                <select id="rec-tipo">
+                    <option value="">Selecione...</option>
+                    <option value="Salário">Salário</option>
+                    <option value="Freelance">Freelance</option>
+                    <option value="Outros">Outros</option>
+                </select>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="fecharModal('modal-receita')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Nova Despesa Fixa -->
+    <div class="modal-overlay" id="modal-despesa-fixa">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Despesa Fixa</h2>
+                <button class="btn-close" onclick="fecharModal('modal-despesa-fixa')">×</button>
+            </div>
+            <p class="modal-subtitle">Vale deste mês em diante.</p>
+            <form id="form-despesa-fixa" class="modal-form">
+                <label>Valor</label>
+                <input type="text" id="df-valor" placeholder="R$ 0,00" required>
+
+                <label>Descrição</label>
+                <input type="text" id="df-descricao" placeholder="Ex.: Aluguel, Internet..." required>
+
+                <label>Vencimento</label>
+                <input type="date" id="df-vencimento" required>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="fecharModal('modal-despesa-fixa')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Nova Despesa Variável -->
+    <div class="modal-overlay" id="modal-despesa-variavel">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Despesa Variável</h2>
+                <button class="btn-close" onclick="fecharModal('modal-despesa-variavel')">×</button>
+            </div>
+            <p class="modal-subtitle">Lançamento deste mês.</p>
+            <form id="form-despesa-variavel" class="modal-form">
+                <label>Data</label>
+                <input type="date" id="dv-data" required>
+
+                <label>Valor</label>
+                <input type="text" id="dv-valor" placeholder="R$ 0,00" required>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="dv-parcelado">
+                    <label for="dv-parcelado">Parcelado</label>
+                </div>
+
+                <label>Descrição</label>
+                <input type="text" id="dv-descricao" placeholder="Ex.: Mercado, Roupas..." required>
+
+                <label>Categoria</label>
+                <select id="dv-categoria" required>
+                    <option value="">Selecione...</option>
+                    <option value="Mercado">Mercado</option>
+                    <option value="Transporte">Transporte</option>
+                    <option value="Farmácia">Farmácia</option>
+                    <option value="Lazer">Lazer</option>
+                    <option value="Estudos">Estudos</option>
+                    <option value="Delivery">Delivery</option>
+                    <option value="Vestuário">Vestuário</option>
+                    <option value="Exercício">Exercício</option>
+                </select>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="fecharModal('modal-despesa-variavel')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Investir -->
+    <div class="modal-overlay" id="modal-investir">
+        <div class="modal-content text-center">
+            <div class="modal-header">
+                <h2>Investir</h2>
+                <button class="btn-close" onclick="fecharModal('modal-investir')">×</button>
+            </div>
+            <p class="modal-subtitle">Quanto da sua receita você reserva pra investir.</p>
+            
+            <div class="invest-display">
+                <h1 id="invest-percent-display" class="text-blue">0%</h1>
+            </div>
+
+            <input type="range" id="invest-range" min="0" max="100" value="0" class="range-slider">
+
+            <div class="invest-quick-btns">
+                <button class="btn-percent" data-val="20">20%</button>
+                <button class="btn-percent" data-val="30">30%</button>
+                <button class="btn-percent" data-val="40">40%</button>
+                <button class="btn-percent" data-val="50">50%</button>
+            </div>
+
+            <div class="invest-result">
+                <p>Valor a Investir</p>
+                <h2 id="invest-value-display" class="text-blue">R$ 0,00</h2>
+                <span>Toque no valor pra digitar. O percentual se ajusta sozinho.</span>
+            </div>
+
+            <div class="modal-actions justify-center mt-20">
+                <button type="button" class="btn-outline" onclick="fecharModal('modal-investir')">Cancelar</button>
+                <button type="button" class="btn-primary" id="btn-salvar-investimento">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/grafico.js"></script>
+    <script src="js/api.js"></script>
+</body>
+</html>
