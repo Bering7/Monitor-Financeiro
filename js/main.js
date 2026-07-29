@@ -17,8 +17,6 @@ tabBtns.forEach(btn => {
         if (aba === 'receita') tituloAba.textContent = 'Receitas';
         if (aba === 'despesa-fixa') tituloAba.textContent = 'Despesas Fixas';
         if (aba === 'despesa-variavel') tituloAba.textContent = 'Despesas Variáveis';
-
-        // (Futuramente, aqui chamaremos a API para carregar os dados reais da aba)
     });
 });
 
@@ -27,11 +25,19 @@ tabBtns.forEach(btn => {
 // CONTROLE DE MODAIS (ABRIR E FECHAR)
 // ==========================================
 function abrirModal(id) {
-    document.getElementById(id).style.display = 'flex';
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'flex';
+    
+    // Ao abrir a modal de investimento, atualiza os valores calculando sobre a receita real
+    if (id === 'modal-investimento' || id === 'modal-investir') {
+        const valorAtual = investRange ? investRange.value : 0;
+        atualizarInvestimento(valorAtual);
+    }
 }
 
 function fecharModal(id) {
-    document.getElementById(id).style.display = 'none';
+    const modal = document.getElementById(id);
+    if (modal) modal.style.display = 'none';
 }
 
 // Fecha a modal automaticamente se o usuário clicar fora dela (no fundo escuro)
@@ -56,30 +62,55 @@ const investPercentDisplay = document.getElementById('invest-percent-display');
 const investValueDisplay = document.getElementById('invest-value-display');
 const btnPercents = document.querySelectorAll('.btn-percent');
 
-// Variável temporária simulando que você tem R$ 5.000 de receita (substituiremos pelo Banco de Dados depois)
-let receitaTotalSimulada = 5000.00; 
+// Função auxiliar para somar as Receitas Reais vindas do api.js
+function obterReceitaTotalReal() {
+    if (typeof todasTransacoes !== 'undefined' && Array.isArray(todasTransacoes)) {
+        return todasTransacoes
+            .filter(t => t.tipo === 'receita')
+            .reduce((total, t) => total + Number(t.valor), 0);
+    }
+    return 0;
+}
 
 function atualizarInvestimento(porcentagem) {
-    // 1. Atualiza o texto gigante da porcentagem (ex: 20%)
-    investPercentDisplay.textContent = `${porcentagem}%`;
-    
-    // 2. Calcula o valor em dinheiro
-    const valorCalculado = (receitaTotalSimulada * (porcentagem / 100));
-    
-    // 3. Formata para o padrão brasileiro (R$ 1.000,00)
-    investValueDisplay.textContent = valorCalculado.toLocaleString('pt-BR', {
-        style: 'currency',
-        currency: 'BRL'
-    });
+    const porcentagemNum = parseFloat(porcentagem) || 0;
 
-    // 4. Sincroniza a bolinha da barra deslizante
-    investRange.value = porcentagem;
+    // 1. Pega a receita REAL cadastrada no sistema
+    const receitaReal = obterReceitaTotalReal();
+    
+    // 2. Atualiza o texto de porcentagem (ex: 20%)
+    if (investPercentDisplay) {
+        investPercentDisplay.textContent = `${porcentagemNum}%`;
+    }
+    
+    // 3. Calcula o valor em dinheiro com base na RECEITA REAL
+    const valorCalculado = (receitaReal * (porcentagemNum / 100));
+    
+    // 4. Formata para o padrão brasileiro (R$ 0,00)
+    if (investValueDisplay) {
+        investValueDisplay.textContent = valorCalculado.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        });
+    }
+
+    // 5. Sincroniza a posição da barra deslizante
+    if (investRange) {
+        investRange.value = porcentagemNum;
+    }
+
+    // 6. Atualiza o Card da tela principal se a função existir no api.js
+    if (typeof atualizarPorcentagemInvestimento === 'function') {
+        atualizarPorcentagemInvestimento(porcentagemNum);
+    }
 }
 
 // Evento: Quando o usuário arrastar a barra manualmente
-investRange.addEventListener('input', (e) => {
-    atualizarInvestimento(e.target.value);
-});
+if (investRange) {
+    investRange.addEventListener('input', (e) => {
+        atualizarInvestimento(e.target.value);
+    });
+}
 
 // Evento: Quando o usuário clicar nos botões rápidos de atalho (20%, 30%, 40%, 50%)
 btnPercents.forEach(btn => {

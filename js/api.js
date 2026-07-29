@@ -24,19 +24,31 @@ async function carregarTransacoes() {
     }
 }
 
+let porcentagemInvestimento = 0;
+
 function atualizarCardsResumo(transacoes) {
     let totalReceitas = 0;
     let totalDespesas = 0;
 
     transacoes.forEach(t => {
-        if (t.tipo === 'receita') totalReceitas += t.valor;
-        else if (t.tipo === 'despesa-fixa' || t.tipo === 'despesa-variavel') totalDespesas += t.valor;
+        if (t.tipo === 'receita') {
+            totalReceitas += t.valor;
+        } else if (t.tipo === 'despesa-fixa' || t.tipo === 'despesa-variavel') {
+            totalDespesas += t.valor;
+        }
     });
 
+    const valorInvestimento = totalReceitas * (porcentagemInvestimento / 100);
     const saldo = totalReceitas - totalDespesas;
+
     document.getElementById('card-receita').textContent = formatarMoeda(totalReceitas);
     document.getElementById('card-despesas').textContent = formatarMoeda(totalDespesas);
     document.getElementById('card-saldo').textContent = formatarMoeda(saldo);
+
+    const cardInvestir = document.getElementary('card-investir');
+    if (cardInvestir) {
+        cardInvestir.textContentor = formatarMoeda(valorInvestimento);
+    }
 }
 
 // ==========================================
