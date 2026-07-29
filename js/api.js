@@ -1,3 +1,4 @@
+// Substitua pelo nome real do seu web service no Render
 const API_URL = 'https://monitor-financeiro-backend.onrender.com/api';
 let todasTransacoes = []; // Guarda os dados na memória para usarmos na edição
 let idEdicao = null; // Controla se estamos criando (null) ou editando (número)
@@ -54,11 +55,20 @@ function atualizarCardsResumo(transacoes) {
     const elSaldo = document.getElementById('card-saldo');
     if (elSaldo) elSaldo.textContent = formatarMoeda(saldo);
 
-    // CORREÇÃO: Usando getElementById e textContent corretos
     const cardInvestir = document.getElementById('card-investir');
     if (cardInvestir) {
         cardInvestir.textContent = formatarMoeda(valorInvestimento);
     }
+}
+
+// ==========================================
+// CONTROLAR EXIBIÇÃO DOS BOTÕES DE EXCLUSÃO
+// ==========================================
+function alternarBotoesExcluir(exibir) {
+    const botoesExcluir = document.querySelectorAll('.btn-excluir');
+    botoesExcluir.forEach(btn => {
+        btn.style.display = exibir ? 'inline-block' : 'none';
+    });
 }
 
 // ==========================================
@@ -76,11 +86,39 @@ async function salvarTransacao(dados) {
         });
 
         if (resposta.ok) {
-            idEdicao = null; // Limpa o modo de edição
+            idEdicao = null;
             carregarTransacoes(); 
         }
     } catch (erro) {
         console.error("Erro ao salvar:", erro);
+    }
+}
+
+// ==========================================
+// EXCLUIR DADOS
+// ==========================================
+async function excluirTransacaoAtual() {
+    if (!idEdicao) return;
+
+    const confirmar = confirm("Tem certeza de que deseja excluir este item?");
+    if (!confirmar) return;
+
+    try {
+        const resposta = await fetch(`${API_URL}/transacoes/${idEdicao}`, {
+            method: 'DELETE'
+        });
+
+        if (resposta.ok) {
+            idEdicao = null;
+            fecharModal('modal-receita');
+            fecharModal('modal-despesa-fixa');
+            fecharModal('modal-despesa-variavel');
+            carregarTransacoes();
+        } else {
+            console.error("Erro ao excluir no servidor.");
+        }
+    } catch (erro) {
+        console.error("Erro ao tentar excluir:", erro);
     }
 }
 
@@ -92,6 +130,9 @@ function abrirEdicao(id) {
     const t = todasTransacoes.find(item => item.id === id);
     if (!t) return;
     
+    // Mostra os botões de excluir pois estamos em modo de edição
+    alternarBotoesExcluir(true);
+
     if (t.tipo === 'receita') {
         if (document.getElementById('rec-valor')) document.getElementById('rec-valor').value = t.valor;
         if (document.getElementById('rec-data')) document.getElementById('rec-data').value = t.data;
@@ -118,6 +159,8 @@ const btnAddModal = document.getElementById('btn-adicionar');
 if (btnAddModal) {
     btnAddModal.addEventListener('click', () => {
         idEdicao = null;
+        // Oculta os botões de excluir ao criar um novo registro
+        alternarBotoesExcluir(false);
         if (document.getElementById('form-receita')) document.getElementById('form-receita').reset();
         if (document.getElementById('form-despesa-fixa')) document.getElementById('form-despesa-fixa').reset();
         if (document.getElementById('form-despesa-variavel')) document.getElementById('form-despesa-variavel').reset();
@@ -218,7 +261,6 @@ function renderizarLista(transacoes) {
                     ${sinal} ${formatarMoeda(t.valor)}
                 </span>
                 <button onclick="abrirEdicao(${t.id})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; padding: 4px;" title="Editar">
-                    <!-- Ícone de Lápis definitivo -->
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>

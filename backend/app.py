@@ -82,15 +82,17 @@ def listar_transacoes():
     return jsonify(transacoes)
 
 # Rota 4: Deletar uma transação pelo ID
-@app.route('/api/transacoes/<int:id_transacao>', methods=['DELETE'])
-def deletar_transacao(id_transacao):
-    conn = obter_conexao()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM transacoes WHERE id = ?', (id_transacao,))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({"mensagem": "Excluído com sucesso!"}), 200
+@app.route('/api/transacoes/<int:id>', methods=['DELETE'])
+def deletar_transacao(id):
+    try:
+        conn = sqlite3.connect('banco.db')
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM transacoes WHERE id = ?", (id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"mensagem": "Transação excluída com sucesso"}), 200
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 # Rota 5: Atualizar uma transação existente (Editar)
 @app.route('/api/transacoes/<int:id_transacao>', methods=['PUT'])
