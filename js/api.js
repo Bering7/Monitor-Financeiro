@@ -1,5 +1,5 @@
 // Substitua "seu-app" pelo nome real do seu web service no Render
-const API_URL = 'https://SEU-APP-NO-RENDER.onrender.com/api';
+const API_URL = 'https://monitor-financeiro-backend.onrender.com';
 let todasTransacoes = []; // Guarda os dados na memória para usarmos na edição
 let idEdicao = null; // Controla se estamos criando (null) ou editando (número)
 
