@@ -14,9 +14,16 @@ tabBtns.forEach(btn => {
         
         // 3. Muda o título da lista dinamicamente
         const aba = btn.getAttribute('data-tab');
-        if (aba === 'receita') tituloAba.textContent = 'Receitas';
-        if (aba === 'despesa-fixa') tituloAba.textContent = 'Despesas Fixas';
-        if (aba === 'despesa-variavel') tituloAba.textContent = 'Despesas Variáveis';
+        if (tituloAba) {
+            if (aba === 'receita') tituloAba.textContent = 'Receitas';
+            if (aba === 'despesa-fixa') tituloAba.textContent = 'Despesas Fixas';
+            if (aba === 'despesa-variavel') tituloAba.textContent = 'Despesas Variáveis';
+        }
+
+        // 4. CORREÇÃO: Força a lista a redesenhar imediatamente ao mudar de aba
+        if (typeof renderizarLista === 'function' && typeof todasTransacoes !== 'undefined') {
+            renderizarLista(todasTransacoes);
+        }
     });
 });
 
@@ -48,10 +55,16 @@ window.addEventListener('click', function(event) {
 });
 
 // Faz o botão "Adicionar" ser inteligente: ele abre a modal da aba que estiver selecionada
-document.getElementById('btn-adicionar').addEventListener('click', () => {
-    const abaAtiva = document.querySelector('.tab-btn.active').getAttribute('data-tab');
-    abrirModal(`modal-${abaAtiva}`);
-});
+const btnAdicionar = document.getElementById('btn-adicionar');
+if (btnAdicionar) {
+    btnAdicionar.addEventListener('click', () => {
+        const abaAtivaObj = document.querySelector('.tab-btn.active');
+        if (abaAtivaObj) {
+            const abaAtiva = abaAtivaObj.getAttribute('data-tab');
+            abrirModal(`modal-${abaAtiva}`);
+        }
+    });
+}
 
 
 // ==========================================

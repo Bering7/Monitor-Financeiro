@@ -1,7 +1,7 @@
-// Substitua "seu-app" pelo nome real do seu web service no Render
 const API_URL = 'https://monitor-financeiro-backend.onrender.com/api';
 let todasTransacoes = []; // Guarda os dados na memória para usarmos na edição
 let idEdicao = null; // Controla se estamos criando (null) ou editando (número)
+let porcentagemInvestimento = 0;
 
 function formatarMoeda(valor) {
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -24,7 +24,11 @@ async function carregarTransacoes() {
     }
 }
 
-let porcentagemInvestimento = 0;
+// Permite ao main.js atualizar a porcentagem e recalcular os cards
+function atualizarPorcentagemInvestimento(porcentagem) {
+    porcentagemInvestimento = parseFloat(porcentagem) || 0;
+    atualizarCardsResumo(todasTransacoes);
+}
 
 function atualizarCardsResumo(transacoes) {
     let totalReceitas = 0;
@@ -41,13 +45,19 @@ function atualizarCardsResumo(transacoes) {
     const valorInvestimento = totalReceitas * (porcentagemInvestimento / 100);
     const saldo = totalReceitas - totalDespesas;
 
-    document.getElementById('card-receita').textContent = formatarMoeda(totalReceitas);
-    document.getElementById('card-despesas').textContent = formatarMoeda(totalDespesas);
-    document.getElementById('card-saldo').textContent = formatarMoeda(saldo);
+    const elReceita = document.getElementById('card-receita');
+    if (elReceita) elReceita.textContent = formatarMoeda(totalReceitas);
 
-    const cardInvestir = document.getElementary('card-investir');
+    const elDespesas = document.getElementById('card-despesas');
+    if (elDespesas) elDespesas.textContent = formatarMoeda(totalDespesas);
+
+    const elSaldo = document.getElementById('card-saldo');
+    if (elSaldo) elSaldo.textContent = formatarMoeda(saldo);
+
+    // CORREÇÃO: Usando getElementById e textContent corretos
+    const cardInvestir = document.getElementById('card-investir');
     if (cardInvestir) {
-        cardInvestir.textContentor = formatarMoeda(valorInvestimento);
+        cardInvestir.textContent = formatarMoeda(valorInvestimento);
     }
 }
 
@@ -56,7 +66,6 @@ function atualizarCardsResumo(transacoes) {
 // ==========================================
 async function salvarTransacao(dados) {
     try {
-        // Se idEdicao estiver preenchido, ele ATUALIZA (PUT). Se for nulo, ele CRIA (POST).
         const url = idEdicao ? `${API_URL}/transacoes/${idEdicao}` : `${API_URL}/transacoes`;
         const metodo = idEdicao ? 'PUT' : 'POST';
 
@@ -81,85 +90,99 @@ async function salvarTransacao(dados) {
 function abrirEdicao(id) {
     idEdicao = id;
     const t = todasTransacoes.find(item => item.id === id);
+    if (!t) return;
     
-    // Preenche a modal correspondente com os dados daquele item
     if (t.tipo === 'receita') {
-        document.getElementById('rec-valor').value = t.valor;
-        document.getElementById('rec-data').value = t.data;
-        document.getElementById('rec-descricao').value = t.descricao;
-        document.getElementById('rec-tipo').value = t.categoria;
-        document.getElementById('rec-futuro').checked = t.flag_futuro;
+        if (document.getElementById('rec-valor')) document.getElementById('rec-valor').value = t.valor;
+        if (document.getElementById('rec-data')) document.getElementById('rec-data').value = t.data;
+        if (document.getElementById('rec-descricao')) document.getElementById('rec-descricao').value = t.descricao;
+        if (document.getElementById('rec-tipo')) document.getElementById('rec-tipo').value = t.categoria;
+        if (document.getElementById('rec-futuro')) document.getElementById('rec-futuro').checked = t.flag_futuro;
         abrirModal('modal-receita');
     } else if (t.tipo === 'despesa-fixa') {
-        document.getElementById('df-valor').value = t.valor;
-        document.getElementById('df-vencimento').value = t.data;
-        document.getElementById('df-descricao').value = t.descricao;
+        if (document.getElementById('df-valor')) document.getElementById('df-valor').value = t.valor;
+        if (document.getElementById('df-vencimento')) document.getElementById('df-vencimento').value = t.data;
+        if (document.getElementById('df-descricao')) document.getElementById('df-descricao').value = t.descricao;
         abrirModal('modal-despesa-fixa');
     } else if (t.tipo === 'despesa-variavel') {
-        document.getElementById('dv-valor').value = t.valor;
-        document.getElementById('dv-data').value = t.data;
-        document.getElementById('dv-descricao').value = t.descricao;
-        document.getElementById('dv-categoria').value = t.categoria;
-        document.getElementById('dv-parcelado').checked = t.flag_parcelado;
+        if (document.getElementById('dv-valor')) document.getElementById('dv-valor').value = t.valor;
+        if (document.getElementById('dv-data')) document.getElementById('dv-data').value = t.data;
+        if (document.getElementById('dv-descricao')) document.getElementById('dv-descricao').value = t.descricao;
+        if (document.getElementById('dv-categoria')) document.getElementById('dv-categoria').value = t.categoria;
+        if (document.getElementById('dv-parcelado')) document.getElementById('dv-parcelado').checked = t.flag_parcelado;
         abrirModal('modal-despesa-variavel');
     }
 }
 
-// Garante que o botão "+ Adicionar" resete tudo para não editar sem querer
-document.getElementById('btn-adicionar').addEventListener('click', () => {
-    idEdicao = null;
-    document.getElementById('form-receita').reset();
-    document.getElementById('form-despesa-fixa').reset();
-    document.getElementById('form-despesa-variavel').reset();
-});
+const btnAddModal = document.getElementById('btn-adicionar');
+if (btnAddModal) {
+    btnAddModal.addEventListener('click', () => {
+        idEdicao = null;
+        if (document.getElementById('form-receita')) document.getElementById('form-receita').reset();
+        if (document.getElementById('form-despesa-fixa')) document.getElementById('form-despesa-fixa').reset();
+        if (document.getElementById('form-despesa-variavel')) document.getElementById('form-despesa-variavel').reset();
+    });
+}
 
 // ==========================================
 // EVENTOS DOS FORMULÁRIOS
 // ==========================================
-document.getElementById('form-receita').addEventListener('submit', (e) => {
-    e.preventDefault();
-    let valSujo = document.getElementById('rec-valor').value;
-    let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+const formRec = document.getElementById('form-receita');
+if (formRec) {
+    formRec.addEventListener('submit', (e) => {
+        e.preventDefault();
+        let valSujo = document.getElementById('rec-valor').value;
+        let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
 
-    salvarTransacao({
-        tipo: 'receita', data: document.getElementById('rec-data').value,
-        valor: valorLimpo, descricao: document.getElementById('rec-descricao').value,
-        categoria: document.getElementById('rec-tipo').value, flag_futuro: document.getElementById('rec-futuro').checked
+        salvarTransacao({
+            tipo: 'receita', data: document.getElementById('rec-data').value,
+            valor: valorLimpo, descricao: document.getElementById('rec-descricao').value,
+            categoria: document.getElementById('rec-tipo').value, flag_futuro: document.getElementById('rec-futuro').checked
+        });
+        fecharModal('modal-receita'); e.target.reset();
     });
-    fecharModal('modal-receita'); e.target.reset();
-});
+}
 
-document.getElementById('form-despesa-fixa').addEventListener('submit', (e) => {
-    e.preventDefault();
-    let valSujo = document.getElementById('df-valor').value;
-    let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+const formDF = document.getElementById('form-despesa-fixa');
+if (formDF) {
+    formDF.addEventListener('submit', (e) => {
+        e.preventDefault();
+        let valSujo = document.getElementById('df-valor').value;
+        let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
 
-    salvarTransacao({
-        tipo: 'despesa-fixa', data: document.getElementById('df-vencimento').value,
-        valor: valorLimpo, descricao: document.getElementById('df-descricao').value
+        salvarTransacao({
+            tipo: 'despesa-fixa', data: document.getElementById('df-vencimento').value,
+            valor: valorLimpo, descricao: document.getElementById('df-descricao').value
+        });
+        fecharModal('modal-despesa-fixa'); e.target.reset();
     });
-    fecharModal('modal-despesa-fixa'); e.target.reset();
-});
+}
 
-document.getElementById('form-despesa-variavel').addEventListener('submit', (e) => {
-    e.preventDefault();
-    let valSujo = document.getElementById('dv-valor').value;
-    let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+const formDV = document.getElementById('form-despesa-variavel');
+if (formDV) {
+    formDV.addEventListener('submit', (e) => {
+        e.preventDefault();
+        let valSujo = document.getElementById('dv-valor').value;
+        let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
 
-    salvarTransacao({
-        tipo: 'despesa-variavel', data: document.getElementById('dv-data').value,
-        valor: valorLimpo, descricao: document.getElementById('dv-descricao').value,
-        categoria: document.getElementById('dv-categoria').value, flag_parcelado: document.getElementById('dv-parcelado').checked
+        salvarTransacao({
+            tipo: 'despesa-variavel', data: document.getElementById('dv-data').value,
+            valor: valorLimpo, descricao: document.getElementById('dv-descricao').value,
+            categoria: document.getElementById('dv-categoria').value, flag_parcelado: document.getElementById('dv-parcelado').checked
+        });
+        fecharModal('modal-despesa-variavel'); e.target.reset();
     });
-    fecharModal('modal-despesa-variavel'); e.target.reset();
-});
+}
 
 // ==========================================
 // RENDERIZAR LISTA 
 // ==========================================
 function renderizarLista(transacoes) {
     const listContainer = document.getElementById('list-container');
-    const abaAtiva = document.querySelector('.tab-btn.active').getAttribute('data-tab');
+    if (!listContainer) return;
+
+    const abaAtivaObj = document.querySelector('.tab-btn.active');
+    const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'receita';
     const transacoesAba = transacoes.filter(t => t.tipo === abaAtiva);
     
     if (transacoesAba.length === 0) {
@@ -175,7 +198,7 @@ function renderizarLista(transacoes) {
     listContainer.appendChild(cabecalho);
     
     transacoesAba.forEach(t => {
-        const partesData = t.data.split('-');
+        const partesData = t.data ? t.data.split('-') : [];
         const dataFormatada = partesData.length === 3 ? `${partesData[2]}/${partesData[1]}/${partesData[0]}` : t.data;
         const isReceita = t.tipo === 'receita';
         const corValor = isReceita ? 'var(--color-green)' : 'var(--text-main)';
@@ -206,9 +229,5 @@ function renderizarLista(transacoes) {
         listContainer.appendChild(item);
     });
 }
-
-document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => carregarTransacoes());
-});
 
 carregarTransacoes();

@@ -3,19 +3,37 @@ let transacoesGlobais = []; // Guarda os dados para usarmos ao trocar de aba
 
 // Escuta o evento criado no api.js que avisa: "Os dados chegaram!"
 window.addEventListener('dadosCarregados', (event) => {
-    transacoesGlobais = event.detail;
+    transacoesGlobais = event.detail || [];
     atualizarGrafico();
 });
 
-function atualizarGrafico() {
-    // Se ainda não carregou os dados, não faz nada
-    if (transacoesGlobais.length === 0) return;
+// CORREÇÃO: Escuta o clique nas abas para re-desenhar o gráfico ao alternar entre elas
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        // Aguarda a aba virar 'active' no DOM para atualizar
+        setTimeout(() => {
+            atualizarGrafico();
+        }, 50);
+    });
+});
 
+function atualizarGrafico() {
     const canvas = document.getElementById('meuGrafico');
     const chartEmpty = document.getElementById('chart-empty');
     
+    // Se os elementos não existirem na tela, evita erros no console
+    if (!canvas || !chartEmpty) return;
+
+    // Se ainda não carregou os dados
+    if (!transacoesGlobais || transacoesGlobais.length === 0) {
+        canvas.style.display = 'none';
+        chartEmpty.style.display = 'flex';
+        return;
+    }
+
     // Descobre qual aba está aberta no momento
-    const abaAtiva = document.querySelector('.tab-btn.active').getAttribute('data-tab');
+    const abaAtivaObj = document.querySelector('.tab-btn.active');
+    const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'receita';
 
     // Pega apenas as transações da aba ativa
     const dadosAba = transacoesGlobais.filter(t => t.tipo === abaAtiva);
@@ -24,10 +42,16 @@ function atualizarGrafico() {
         // Se não tiver dados nesta aba, esconde o gráfico e mostra a mensagem
         canvas.style.display = 'none';
         chartEmpty.style.display = 'flex';
+        
+        // Destrói gráfico antigo se existir
+        if (meuGraficoInstancia) {
+            meuGraficoInstancia.destroy();
+            meuGraficoInstancia = null;
+        }
         return;
     }
 
-    // Se tem dado, esconde a mensagem e mostra o canvas
+    // Se tem dados, esconde a mensagem e mostra o canvas
     canvas.style.display = 'block';
     chartEmpty.style.display = 'none';
 
@@ -46,7 +70,7 @@ function atualizarGrafico() {
         if (!totais[chave_agrupamento]) {
             totais[chave_agrupamento] = 0;
         }
-        totais[chave_agrupamento] += t.valor;
+        totais[chave_agrupamento] += Number(t.valor) || 0;
     });
 
     const labels = Object.keys(totais);
@@ -64,6 +88,9 @@ function atualizarGrafico() {
         meuGraficoInstancia.destroy();
     }
 
+    // Garante que a biblioteca do Chart.js está carregada
+    if (typeof Chart === 'undefined') return;
+
     // Desenha o novo gráfico com os dados da aba atual
     meuGraficoInstancia = new Chart(canvas, {
         type: 'doughnut',
@@ -78,6 +105,7 @@ function atualizarGrafico() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             cutout: '75%', 
             plugins: {
                 legend: {
