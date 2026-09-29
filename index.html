@@ -96,7 +96,7 @@
                     <h3 id="titulo-aba">Receitas</h3>
                     <div class="list-actions">
                         <!-- Botões atualizados com a nova classe -->
-                        <button class="btn-action-list">
+                        <button class="btn-action-list" id="btn-filtro">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
                             Filtro
                         </button>
@@ -282,6 +282,29 @@
                 <button type="button" class="btn-outline" onclick="fecharModal('modal-investir')">Cancelar</button>
                 <button type="button" class="btn-primary" id="btn-salvar-investimento">Salvar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal: Filtrar -->
+    <div class="modal-overlay" id="modal-filtro">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Filtrar Transações</h2>
+                <button class="btn-close" onclick="fecharModal('modal-filtro')">×</button>
+            </div>
+            <p class="modal-subtitle">Filtre por descrição ou categoria.</p>
+            <form id="form-filtro" class="modal-form">
+                <label>Descrição / Nome</label>
+                <input type="text" id="filtro-descricao" placeholder="Buscar por descrição...">
+
+                <label>Categoria / Tipo</label>
+                <input type="text" id="filtro-categoria" placeholder="Ex: Salário, Mercado...">
+
+                <div class="modal-actions" style="margin-top: 20px;">
+                    <button type="button" class="btn-outline" id="btn-limpar-filtro">Limpar</button>
+                    <button type="submit" class="btn-primary">Aplicar Filtro</button>
+                </div>
+            </form>
         </div>
     </div>
 

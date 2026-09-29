@@ -218,6 +218,58 @@ if (formDV) {
 }
 
 // ==========================================
+// CONTROLE DE FILTRO
+// ==========================================
+let filtroAtivo = { descricao: '', categoria: '' };
+
+const btnFiltro = document.getElementById('btn-filtro');
+if (btnFiltro) {
+    btnFiltro.addEventListener('click', () => {
+        const inputDesc = document.getElementById('filtro-descricao');
+        const inputCat = document.getElementById('filtro-categoria');
+        if (inputDesc) inputDesc.value = filtroAtivo.descricao;
+        if (inputCat) inputCat.value = filtroAtivo.categoria;
+        abrirModal('modal-filtro');
+    });
+}
+
+const formFiltro = document.getElementById('form-filtro');
+if (formFiltro) {
+    formFiltro.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const inputDesc = document.getElementById('filtro-descricao');
+        const inputCat = document.getElementById('filtro-categoria');
+        filtroAtivo.descricao = inputDesc ? inputDesc.value.toLowerCase().trim() : '';
+        filtroAtivo.categoria = inputCat ? inputCat.value.toLowerCase().trim() : '';
+        fecharModal('modal-filtro');
+        renderizarLista(todasTransacoes);
+    });
+}
+
+const btnLimparFiltro = document.getElementById('btn-limpar-filtro');
+if (btnLimparFiltro) {
+    btnLimparFiltro.addEventListener('click', () => {
+        filtroAtivo.descricao = '';
+        filtroAtivo.categoria = '';
+        const formFiltroEl = document.getElementById('form-filtro');
+        if (formFiltroEl) formFiltroEl.reset();
+        fecharModal('modal-filtro');
+        renderizarLista(todasTransacoes);
+    });
+}
+
+// Reset filter on tab change
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        filtroAtivo.descricao = '';
+        filtroAtivo.categoria = '';
+        const formFiltroEl = document.getElementById('form-filtro');
+        if (formFiltroEl) formFiltroEl.reset();
+        carregarTransacoes();
+    });
+});
+
+// ==========================================
 // RENDERIZAR LISTA 
 // ==========================================
 function renderizarLista(transacoes) {
@@ -226,7 +278,13 @@ function renderizarLista(transacoes) {
 
     const abaAtivaObj = document.querySelector('.tab-btn.active');
     const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'receita';
-    const transacoesAba = transacoes.filter(t => t.tipo === abaAtiva);
+    
+    const transacoesAba = transacoes.filter(t => {
+        if (t.tipo !== abaAtiva) return false;
+        const matchDesc = filtroAtivo.descricao === '' || (t.descricao && t.descricao.toLowerCase().includes(filtroAtivo.descricao));
+        const matchCat = filtroAtivo.categoria === '' || (t.categoria && t.categoria.toLowerCase().includes(filtroAtivo.categoria));
+        return matchDesc && matchCat;
+    });
     
     if (transacoesAba.length === 0) {
         listContainer.innerHTML = `<div class="empty-state"><p>Sem dados neste período.</p></div>`;
