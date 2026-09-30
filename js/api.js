@@ -29,6 +29,10 @@ async function carregarTransacoes() {
 function atualizarPorcentagemInvestimento(porcentagem) {
     porcentagemInvestimento = parseFloat(porcentagem) || 0;
     atualizarCardsResumo(todasTransacoes);
+    renderizarLista(todasTransacoes);
+    if (typeof atualizarGrafico === 'function') {
+        atualizarGrafico();
+    }
 }
 
 function atualizarCardsResumo(transacoes) {
@@ -243,6 +247,9 @@ if (formFiltro) {
         filtroAtivo.categoria = inputCat ? inputCat.value.toLowerCase().trim() : '';
         fecharModal('modal-filtro');
         renderizarLista(todasTransacoes);
+        if (typeof atualizarGrafico === 'function') {
+            atualizarGrafico();
+        }
     });
 }
 
@@ -255,6 +262,9 @@ if (btnLimparFiltro) {
         if (formFiltroEl) formFiltroEl.reset();
         fecharModal('modal-filtro');
         renderizarLista(todasTransacoes);
+        if (typeof atualizarGrafico === 'function') {
+            atualizarGrafico();
+        }
     });
 }
 
@@ -270,6 +280,113 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ==========================================
+// RENDERIZAR ABA GERAL (todos os lançamentos, sem somar)
+// ==========================================
+function escaparHTML(texto) {
+    return String(texto ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+function formatarDataBR(data) {
+    const partes = data ? data.split('-') : [];
+    return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : (data || '');
+}
+
+function renderizarListaGeral(transacoes) {
+    const listContainer = document.getElementById('list-container');
+    if (!listContainer) return;
+
+    // Configuração visual de cada tipo (mesmas cores usadas no resto do app)
+    const TIPOS = {
+        'receita':          { rotulo: 'Receita',          cor: 'var(--color-green)', sinal: '+' },
+        'despesa-fixa':     { rotulo: 'Despesa fixa',     cor: 'var(--color-red)',   sinal: '-' },
+        'despesa-variavel': { rotulo: 'Despesa variável', cor: '#f59e0b',            sinal: '-' },
+        'investimento':     { rotulo: 'Investimento',     cor: 'var(--color-blue)',  sinal: ''  }
+    };
+
+    // 1. Aplica o filtro e mantém cada lançamento individual
+    const lancamentos = transacoes.filter(t => {
+        if (!TIPOS[t.tipo]) return false;
+        const matchDesc = filtroAtivo.descricao === '' || (t.descricao && t.descricao.toLowerCase().includes(filtroAtivo.descricao));
+        const matchCat = filtroAtivo.categoria === '' || (t.categoria && t.categoria.toLowerCase().includes(filtroAtivo.categoria));
+        return matchDesc && matchCat;
+    });
+
+    // 2. Mais recentes primeiro
+    lancamentos.sort((a, b) => {
+        const da = a.data || '';
+        const db = b.data || '';
+        if (da !== db) return da < db ? 1 : -1;
+        return (b.id || 0) - (a.id || 0);
+    });
+
+    // 3. Linha de Investimento (calculada pela % escolhida sobre a receita filtrada)
+    const totalReceitas = lancamentos
+        .filter(t => t.tipo === 'receita')
+        .reduce((soma, t) => soma + (Number(t.valor) || 0), 0);
+    const valorInvestimento = totalReceitas * (porcentagemInvestimento / 100);
+    const semFiltroAtivo = filtroAtivo.descricao === '' && filtroAtivo.categoria === '';
+    const mostrarInvestimento = semFiltroAtivo && valorInvestimento > 0;
+
+    if (lancamentos.length === 0 && !mostrarInvestimento) {
+        listContainer.innerHTML = `<div class="empty-state"><p>Nenhum lançamento cadastrado.</p></div>`;
+        return;
+    }
+
+    const colunas = "display: grid; grid-template-columns: 95px 1fr 130px 150px 28px; gap: 12px; align-items: center;";
+    listContainer.innerHTML = '';
+
+    const cabecalho = document.createElement('div');
+    cabecalho.style = `${colunas} padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 13px; font-weight: 600;`;
+    cabecalho.innerHTML = `<span>Data</span><span>Descrição</span><span>Tipo</span><span style="text-align: right;">Valor</span><span></span>`;
+    listContainer.appendChild(cabecalho);
+
+    const criarLinha = ({ data, descricao, categoria, tipo, valor, id }) => {
+        const cfg = TIPOS[tipo];
+        const sinalStr = cfg.sinal ? `${cfg.sinal} ` : '';
+        const botaoEditar = id !== undefined ? `
+            <button onclick="abrirEdicao(${id})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; padding: 4px;" title="Editar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            </button>` : '';
+        const subcategoria = categoria
+            ? `<span style="display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-top: 2px;">${escaparHTML(categoria)}</span>`
+            : '';
+
+        const item = document.createElement('div');
+        item.style = `${colunas} padding: 14px 0; border-bottom: 1px solid var(--border-color);`;
+        item.innerHTML = `
+            <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">${data ? formatarDataBR(data) : '—'}</span>
+            <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(descricao)}${subcategoria}</span>
+            <span><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: ${cfg.cor}; background-color: color-mix(in srgb, ${cfg.cor} 12%, transparent);">${cfg.rotulo}</span></span>
+            <span style="text-align: right; font-weight: 600; color: ${cfg.cor}; font-size: 15px;">${sinalStr}${formatarMoeda(valor)}</span>
+            <span>${botaoEditar}</span>
+        `;
+        listContainer.appendChild(item);
+    };
+
+    lancamentos.forEach(t => criarLinha({
+        data: t.data,
+        descricao: t.descricao,
+        categoria: t.tipo === 'despesa-fixa' ? '' : t.categoria,
+        tipo: t.tipo,
+        valor: t.valor,
+        id: t.id
+    }));
+
+    if (mostrarInvestimento) {
+        criarLinha({
+            descricao: `Investimento (${porcentagemInvestimento}% da receita)`,
+            tipo: 'investimento',
+            valor: valorInvestimento
+        });
+    }
+}
+
+// ==========================================
 // RENDERIZAR LISTA 
 // ==========================================
 function renderizarLista(transacoes) {
@@ -277,7 +394,17 @@ function renderizarLista(transacoes) {
     if (!listContainer) return;
 
     const abaAtivaObj = document.querySelector('.tab-btn.active');
-    const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'receita';
+    const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'geral';
+    
+    const btnAdicionar = document.getElementById('btn-adicionar');
+    if (btnAdicionar) {
+        btnAdicionar.style.display = (abaAtiva === 'geral') ? 'none' : 'flex';
+    }
+
+    if (abaAtiva === 'geral') {
+        renderizarListaGeral(transacoes);
+        return;
+    }
     
     const transacoesAba = transacoes.filter(t => {
         if (t.tipo !== abaAtiva) return false;

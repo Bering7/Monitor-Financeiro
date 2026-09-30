@@ -83,7 +83,8 @@
 
         <!-- Navegação (Pílulas) -->
         <nav class="tabs-container">
-            <button class="tab-btn active" data-tab="receita">Receita</button>
+            <button class="tab-btn active" data-tab="geral">Geral</button>
+            <button class="tab-btn" data-tab="receita">Receita</button>
             <button class="tab-btn" data-tab="despesa-fixa">Despesa fixa</button>
             <button class="tab-btn" data-tab="despesa-variavel">Despesa variável</button>
         </nav>
@@ -93,14 +94,14 @@
             <!-- Coluna da Esquerda: Lista de Itens -->
             <div class="list-section">
                 <div class="list-header">
-                    <h3 id="titulo-aba">Receitas</h3>
+                    <h3 id="titulo-aba">Visão Geral</h3>
                     <div class="list-actions">
                         <!-- Botões atualizados com a nova classe -->
                         <button class="btn-action-list" id="btn-filtro">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
                             Filtro
                         </button>
-                        <button class="btn-action-list" id="btn-adicionar">
+                        <button class="btn-action-list" id="btn-adicionar" style="display: none;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                             Adicionar
                         </button>

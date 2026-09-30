@@ -12,12 +12,18 @@ tabBtns.forEach(btn => {
         // 2. Adiciona a classe 'active' apenas no botão clicado
         btn.classList.add('active');
         
-        // 3. Muda o título da lista dinamicamente
+        // 3. Muda o título da lista dinamicamente e controla botão Adicionar
         const aba = btn.getAttribute('data-tab');
         if (tituloAba) {
+            if (aba === 'geral') tituloAba.textContent = 'Visão Geral';
             if (aba === 'receita') tituloAba.textContent = 'Receitas';
             if (aba === 'despesa-fixa') tituloAba.textContent = 'Despesas Fixas';
             if (aba === 'despesa-variavel') tituloAba.textContent = 'Despesas Variáveis';
+        }
+
+        const btnAdicionar = document.getElementById('btn-adicionar');
+        if (btnAdicionar) {
+            btnAdicionar.style.display = (aba === 'geral') ? 'none' : 'flex';
         }
 
         // 4. CORREÇÃO: Força a lista a redesenhar imediatamente ao mudar de aba
