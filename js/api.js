@@ -2,7 +2,7 @@
 const API_URL = 'https://monitor-financeiro-backend.onrender.com/api';
 let todasTransacoes = []; // Guarda os dados na memória para usarmos na edição
 let idEdicao = null; // Controla se estamos criando (null) ou editando (número)
-let porcentagemInvestimento = 0;
+let porcentagemInvestimento = parseFloat(localStorage.getItem('porcentagemInvestimento')) || 0;
 
 function formatarMoeda(valor) {
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

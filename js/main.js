@@ -37,7 +37,9 @@ function abrirModal(id) {
     
     // Ao abrir a modal de investimento, atualiza os valores calculando sobre a receita real
     if (id === 'modal-investimento' || id === 'modal-investir') {
-        const valorAtual = investRange ? investRange.value : 0;
+        const valorAtual = localStorage.getItem('porcentagemInvestimento') !== null 
+            ? localStorage.getItem('porcentagemInvestimento') 
+            : (investRange ? investRange.value : 0);
         atualizarInvestimento(valorAtual);
     }
 }
@@ -132,3 +134,20 @@ btnPercents.forEach(btn => {
         atualizarInvestimento(valor);
     });
 });
+
+// Evento: Botão Salvar na modal de investimento
+const btnSalvarInvestimento = document.getElementById('btn-salvar-investimento');
+if (btnSalvarInvestimento) {
+    btnSalvarInvestimento.addEventListener('click', () => {
+        const porcentagem = investRange ? investRange.value : 0;
+        localStorage.setItem('porcentagemInvestimento', porcentagem);
+        atualizarInvestimento(porcentagem);
+        fecharModal('modal-investir');
+    });
+}
+
+// Inicializa com o valor salvo no localStorage, se houver
+const porcentagemSalvaInit = localStorage.getItem('porcentagemInvestimento');
+if (porcentagemSalvaInit !== null) {
+    atualizarInvestimento(porcentagemSalvaInit);
+}
