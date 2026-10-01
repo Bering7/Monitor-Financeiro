@@ -11,7 +11,21 @@
     --color-blue: #3b82f6;
     --color-dark: #111827;
     
+    --surface-alt: #f9fafb;
+    
     --font-main: 'Inter', sans-serif;
+}
+
+/* ===== MODO ESCURO ===== */
+:root[data-theme="dark"] {
+    color-scheme: dark; /* ajusta calendário, scrollbars e campos nativos */
+    --bg-color: #0b1220;
+    --card-bg: #161e2e;
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border-color: #2a3447;
+    --color-dark: #f9fafb;
+    --surface-alt: #1d2638;
 }
 
 * {
@@ -25,6 +39,7 @@ body {
     color: var(--text-main);
     font-family: var(--font-main);
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 /* Container Principal */
@@ -53,30 +68,37 @@ body {
     gap: 16px;
 }
 
-/* --- Novo Sino de Notificação --- */
-.btn-icon {
-    background-color: #ffffff;
+/* --- Botão de alternar tema (claro/escuro) --- */
+.btn-tema {
+    background-color: var(--card-bg);
+    color: var(--text-muted);
     border: 1px solid var(--border-color);
-    border-radius: 50%; /* Deixa redondinho */
-    width: 40px;
-    height: 40px;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-.btn-icon:hover {
-    background-color: #f9fafb;
+.btn-tema:hover {
+    color: var(--text-main);
+    background-color: var(--surface-alt);
 }
+
+/* Modo claro mostra o Sol; modo escuro mostra a Lua */
+.btn-tema .icon-lua { display: none; }
+:root[data-theme="dark"] .btn-tema .icon-sol { display: none; }
+:root[data-theme="dark"] .btn-tema .icon-lua { display: block; }
 
 /* --- Novos Botões da Lista (Filtro e Adicionar) --- */
 .btn-action-list {
-    background-color: #f3f4f6; /* Fundo acinzentado/escuro */
-    color: #111827; /* Texto escuro/preto */
-    border: 1px solid #d1d5db; /* Borda bem sutil */
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
     padding: 8px 16px;
     border-radius: 8px;
     font-weight: 600;
@@ -89,7 +111,7 @@ body {
 }
 
 .btn-action-list:hover {
-    background-color: #e5e7eb;
+    background-color: var(--border-color);
 }
 
 /* Para o ícone de olho no título ficar com a cor cinza suave */
@@ -106,13 +128,6 @@ body {
     gap: 10px;
     font-weight: 600;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-
-.date-selector button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
 }
 
 /* Cards de Resumo */
@@ -261,7 +276,7 @@ body {
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.5);
     display: none; /* Oculto por padrão */
     align-items: center;
     justify-content: center;
@@ -324,6 +339,8 @@ body {
     font-size: 14px;
     font-family: inherit;
     outline: none;
+    background-color: var(--card-bg);
+    color: var(--text-main);
 }
 
 .modal-form input:focus, .modal-form select:focus {
@@ -334,7 +351,7 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 12px;
-    background-color: #f9fafb;
+    background-color: var(--surface-alt);
     padding: 12px;
     border-radius: 12px;
 }
@@ -377,6 +394,7 @@ body {
 }
 
 .btn-percent {
+    color: var(--text-main);
     background-color: var(--bg-color);
     border: none;
     padding: 8px 16px;

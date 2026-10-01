@@ -157,3 +157,49 @@ const porcentagemSalvaInit = localStorage.getItem('porcentagemInvestimento');
 if (porcentagemSalvaInit !== null) {
     atualizarInvestimento(porcentagemSalvaInit);
 }
+
+
+// ==========================================
+// TEMA CLARO / ESCURO
+// ==========================================
+function aplicarTema(tema) {
+    document.documentElement.setAttribute('data-theme', tema);
+    try { localStorage.setItem('tema', tema); } catch (e) {}
+
+    const btnTema = document.getElementById('btn-tema');
+    if (btnTema) {
+        btnTema.title = tema === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro';
+    }
+
+    // Avisa o gráfico para redesenhar com as cores do novo tema
+    window.dispatchEvent(new CustomEvent('temaAlterado'));
+}
+
+const btnTema = document.getElementById('btn-tema');
+if (btnTema) {
+    btnTema.addEventListener('click', () => {
+        const atual = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        aplicarTema(atual === 'dark' ? 'light' : 'dark');
+    });
+    btnTema.title = document.documentElement.getAttribute('data-theme') === 'dark'
+        ? 'Mudar para modo claro'
+        : 'Mudar para modo escuro';
+}
+
+
+// ==========================================
+// DATA ATUAL NO CABEÇALHO ("1 de Outubro de 2026")
+// ==========================================
+const MESES_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+function atualizarDataAtual() {
+    const el = document.getElementById('data-atual');
+    if (!el) return;
+    const hoje = new Date();
+    el.textContent = `${hoje.getDate()} de ${MESES_PT[hoje.getMonth()]} de ${hoje.getFullYear()}`;
+}
+
+atualizarDataAtual();
+// Se a aba ficar aberta durante a virada do dia, a data se corrige sozinha
+setInterval(atualizarDataAtual, 60 * 1000);

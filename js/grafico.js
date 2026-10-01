@@ -7,6 +7,11 @@ window.addEventListener('dadosCarregados', (event) => {
     atualizarGrafico();
 });
 
+// Redesenha o gráfico quando o tema (claro/escuro) muda, para ajustar as cores do texto
+window.addEventListener('temaAlterado', () => {
+    atualizarGrafico();
+});
+
 // CORREÇÃO: Escuta o clique nas abas para re-desenhar o gráfico ao alternar entre elas
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -151,6 +156,9 @@ function atualizarGrafico() {
     // Garante que a biblioteca do Chart.js está carregada
     if (typeof Chart === 'undefined') return;
 
+    // Cor do texto da legenda acompanha o tema atual
+    const corTexto = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#6b7280';
+
     // Desenha o novo gráfico com os dados da aba atual
     meuGraficoInstancia = new Chart(canvas, {
         type: 'doughnut',
@@ -173,6 +181,7 @@ function atualizarGrafico() {
                     labels: {
                         usePointStyle: true,
                         padding: 20,
+                        color: corTexto,
                         font: { family: "'Inter', sans-serif", size: 12 }
                     }
                 }
