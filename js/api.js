@@ -48,7 +48,8 @@ function atualizarCardsResumo(transacoes) {
     });
 
     const valorInvestimento = totalReceitas * (porcentagemInvestimento / 100);
-    const saldo = totalReceitas - totalDespesas;
+    // O valor investido sai do saldo disponível (Receita - Despesas - Investimento)
+    const saldo = totalReceitas - totalDespesas - valorInvestimento;
 
     const elReceita = document.getElementById('card-receita');
     if (elReceita) elReceita.textContent = formatarMoeda(totalReceitas);
