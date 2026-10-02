@@ -147,6 +147,8 @@ if (btnSalvarInvestimento) {
     btnSalvarInvestimento.addEventListener('click', () => {
         const porcentagem = investRange ? investRange.value : 0;
         localStorage.setItem('porcentagemInvestimento', porcentagem);
+        // Guarda também na conta, para valer em qualquer dispositivo (função do auth.js)
+        if (typeof salvarPorcentagemNoServidor === 'function') salvarPorcentagemNoServidor(porcentagem);
         atualizarInvestimento(porcentagem);
         fecharModal('modal-investir');
     });

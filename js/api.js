@@ -13,7 +13,8 @@ function formatarMoeda(valor) {
 // ==========================================
 async function carregarTransacoes() {
     try {
-        const resposta = await fetch(`${API_URL}/transacoes`);
+        const resposta = await authFetch(`${API_URL}/transacoes`);
+        if (!resposta.ok) return; // 401: o authFetch já voltou para a tela de login
         todasTransacoes = await resposta.json();
         
         atualizarCardsResumo(todasTransacoes);
@@ -84,7 +85,7 @@ async function salvarTransacao(dados) {
         const url = idEdicao ? `${API_URL}/transacoes/${idEdicao}` : `${API_URL}/transacoes`;
         const metodo = idEdicao ? 'PUT' : 'POST';
 
-        const resposta = await fetch(url, {
+        const resposta = await authFetch(url, {
             method: metodo,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dados)
@@ -109,7 +110,7 @@ async function excluirTransacaoAtual() {
     if (!confirmar) return;
 
     try {
-        const resposta = await fetch(`${API_URL}/transacoes/${idEdicao}`, {
+        const resposta = await authFetch(`${API_URL}/transacoes/${idEdicao}`, {
             method: 'DELETE'
         });
 
@@ -440,7 +441,7 @@ function renderizarLista(transacoes) {
         item.innerHTML = `
             <div style="display: flex; align-items: center; gap: 24px;">
                 <span style="font-size: 14px; color: var(--text-muted); min-width: 90px; font-weight: 500;">${dataFormatada}</span>
-                <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${t.descricao}</span>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(t.descricao)}</span>
             </div>
 
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -459,4 +460,5 @@ function renderizarLista(transacoes) {
     });
 }
 
-carregarTransacoes();
+// Só carrega os dados depois de confirmar que há uma conta logada (definido no auth.js)
+iniciarSessao();
