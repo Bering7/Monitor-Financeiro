@@ -276,7 +276,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         filtroAtivo.categoria = '';
         const formFiltroEl = document.getElementById('form-filtro');
         if (formFiltroEl) formFiltroEl.reset();
-        carregarTransacoes();
+        // Dados já estão em memória: só redesenha a lista (o gráfico se atualiza pelo grafico.js)
+        renderizarLista(todasTransacoes);
     });
 });
 
