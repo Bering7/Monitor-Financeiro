@@ -303,7 +303,7 @@ function renderizarListaGeral(transacoes) {
     const TIPOS = {
         'receita':          { rotulo: 'Receita',          cor: 'var(--color-green)', sinal: '+' },
         'despesa-fixa':     { rotulo: 'Despesa fixa',     cor: 'var(--color-red)',   sinal: '-' },
-        'despesa-variavel': { rotulo: 'Despesa variável', cor: '#f59e0b',            sinal: '-' },
+        'despesa-variavel': { rotulo: 'Despesa variável', cor: '#f97316',            sinal: '-' },
         'investimento':     { rotulo: 'Investimento',     cor: 'var(--color-blue)',  sinal: ''  }
     };
 
