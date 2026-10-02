@@ -85,7 +85,7 @@ def listar_transacoes():
 @app.route('/api/transacoes/<int:id>', methods=['DELETE'])
 def deletar_transacao(id):
     try:
-        conn = sqlite3.connect('banco.db')
+        conn = obter_conexao()
         cursor = conn.cursor()
         cursor.execute("DELETE FROM transacoes WHERE id = ?", (id,))
         conn.commit()
