@@ -5,6 +5,7 @@ Aplicação web para acompanhar receitas, despesas e investimentos de forma simp
 
 ## Funcionalidades
 
+- **Contas de usuário:** cada pessoa cria uma conta (e-mail e senha) e vê apenas os próprios dados, em qualquer dispositivo.
 - **Cards de resumo:** receita, investimento, despesas e saldo, sempre atualizados.
 - **Lançamentos por tipo:** abas de Receita, Despesa fixa e Despesa variável, com adição, edição e exclusão.
 - **Visão Geral:** tabela com todos os lançamentos individuais, ordenados do mais recente para o mais antigo, com a linha de investimento calculada.
@@ -28,6 +29,7 @@ Monitor-Financeiro/
 ├── css/
 │   └── style.css     # Estilos e temas (claro/escuro)
 ├── js/
+│   ├── auth.js       # Login, cadastro, sessão e logout
 │   ├── api.js        # Comunicação com a API, cards e lista de lançamentos
 │   ├── grafico.js    # Gráfico de rosca (Chart.js)
 │   └── main.js       # Abas, modais, investimento, tema e data
@@ -51,34 +53,61 @@ Por padrão, o frontend usa a API hospedada no Render. Para usar outra, altere a
 
 ### Backend
 
-<!-- TODO: documentar como instalar e iniciar o backend localmente -->
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
+
+O servidor sobe em `http://127.0.0.1:5000`. Para usá-lo, aponte a `API_URL` de `js/api.js` para `http://127.0.0.1:5000/api`.
+
+**Variáveis de ambiente**
+
+| Variável     | Uso                                                                                          |
+|--------------|----------------------------------------------------------------------------------------------|
+| `SECRET_KEY` | **Obrigatória em produção.** Texto longo e aleatório que assina os logins. Defina no Render. |
+| `DB_PATH`    | Opcional. Caminho do arquivo do banco SQLite (padrão: `backend/banco.db`).                   |
+
+Para gerar uma chave: `python -c "import secrets; print(secrets.token_hex(32))"`.
+
+> A primeira conta criada herda os lançamentos que já existiam no banco antes das contas.
 
 ## 🔌 API
 
 Base: `/api`
 
-| Método   | Rota               | Descrição                    |
-|----------|--------------------|------------------------------|
-| `GET`    | `/transacoes`      | Lista todos os lançamentos   |
-| `POST`   | `/transacoes`      | Cria um lançamento           |
-| `PUT`    | `/transacoes/:id`  | Atualiza um lançamento       |
-| `DELETE` | `/transacoes/:id`  | Remove um lançamento         |
+| Método   | Rota               | Auth | Descrição                                   |
+|----------|--------------------|------|---------------------------------------------|
+| `POST`   | `/registro`        | não  | Cria uma conta e devolve o token de login   |
+| `POST`   | `/login`           | não  | Entra na conta e devolve o token de login   |
+| `GET`    | `/perfil`          | sim  | E-mail e porcentagem de investimento        |
+| `PUT`    | `/perfil`          | sim  | Atualiza a porcentagem de investimento      |
+| `GET`    | `/transacoes`      | sim  | Lista os lançamentos do usuário logado      |
+| `POST`   | `/transacoes`      | sim  | Cria um lançamento                          |
+| `PUT`    | `/transacoes/:id`  | sim  | Atualiza um lançamento                      |
+| `DELETE` | `/transacoes/:id`  | sim  | Remove um lançamento                        |
+
+Rotas com **Auth: sim** exigem o cabeçalho `Authorization: Bearer <token>`. Cada usuário só enxerga e altera os próprios lançamentos.
 
 Tipos de lançamento: `receita`, `despesa-fixa` e `despesa-variavel`.
 
 ## Dados salvos no navegador
 
-| Chave                     | Uso                                  |
-|---------------------------|--------------------------------------|
-| `porcentagemInvestimento` | Porcentagem da receita a investir    |
-| `tema`                    | Tema escolhido (`light` ou `dark`)   |
+| Chave                     | Uso                                                                 |
+|---------------------------|---------------------------------------------------------------------|
+| `tokenAuth`               | Token de login (apagado ao clicar em **Sair**)                      |
+| `emailUsuario`            | E-mail exibido no cabeçalho                                         |
+| `porcentagemInvestimento` | Cópia local da porcentagem; a original fica salva na conta          |
+| `tema`                    | Tema escolhido (`light` ou `dark`)                                  |
 
 ## Próximos passos
 
 - [ ] Navegação por mês/ano
 - [ ] Layout responsivo para celular
 - [ ] Exportar lançamentos (CSV)
-- [ ] Autenticação de usuários
+- [x] Autenticação de usuários
+- [ ] Recuperação de senha
+- [ ] Banco de dados persistente em produção (o disco do Render gratuito é temporário)
 
 ## Autor
 
