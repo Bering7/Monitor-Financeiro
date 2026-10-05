@@ -13,7 +13,7 @@ function formatarMoeda(valor) {
 // ==========================================
 async function carregarTransacoes() {
     try {
-        const resposta = await authFetch(`${API_URL}/transacoes`);
+        const resposta = await authFetch(`${API_URL}/transacoes?hoje=${hojeISO()}`);
         if (!resposta.ok) return; // 401: o authFetch já voltou para a tela de login
         todasTransacoes = await resposta.json();
         
@@ -36,35 +36,56 @@ function atualizarPorcentagemInvestimento(porcentagem) {
     }
 }
 
-function atualizarCardsResumo(transacoes) {
-    let totalReceitas = 0;
-    let totalDespesas = 0;
+// Receita marcada como "Recebimento futuro" só conta quando o dia e o mês definidos chegam
+function receitaPendente(t) {
+    return t.tipo === 'receita' && !!t.flag_futuro && (t.data || '') > hojeISO();
+}
 
-    transacoes.forEach(t => {
+// Selo "Futuro" exibido ao lado das receitas ainda não recebidas
+function seloFuturo(t) {
+    return receitaPendente(t)
+        ? `<span class="badge-futuro" title="Entra no saldo em ${formatarDataBR(t.data)}">Futuro</span>`
+        : '';
+}
+
+// Totais usados nos cards, no investimento e na porcentagem do gráfico
+function calcularResumo(transacoes) {
+    let receitas = 0;
+    let despesas = 0;
+
+    (transacoes || []).forEach(t => {
+        const valor = Number(t.valor) || 0;
         if (t.tipo === 'receita') {
-            totalReceitas += t.valor;
+            if (!receitaPendente(t)) receitas += valor; // ignora recebimento futuro
         } else if (t.tipo === 'despesa-fixa' || t.tipo === 'despesa-variavel') {
-            totalDespesas += t.valor;
+            despesas += valor;
         }
     });
 
-    const valorInvestimento = totalReceitas * (porcentagemInvestimento / 100);
+    const investimento = receitas * (porcentagemInvestimento / 100);
     // O valor investido sai do saldo disponível (Receita - Despesas - Investimento)
-    const saldo = totalReceitas - totalDespesas - valorInvestimento;
+    return { receitas, despesas, investimento, saldo: receitas - despesas - investimento };
+}
+
+// Usado pelo grafico.js para calcular a porcentagem do tooltip
+function obterResumo() {
+    return calcularResumo(todasTransacoes);
+}
+
+function atualizarCardsResumo(transacoes) {
+    const { receitas, despesas, investimento, saldo } = calcularResumo(transacoes);
 
     const elReceita = document.getElementById('card-receita');
-    if (elReceita) elReceita.textContent = formatarMoeda(totalReceitas);
+    if (elReceita) elReceita.textContent = formatarMoeda(receitas);
 
     const elDespesas = document.getElementById('card-despesas');
-    if (elDespesas) elDespesas.textContent = formatarMoeda(totalDespesas);
+    if (elDespesas) elDespesas.textContent = formatarMoeda(despesas);
 
     const elSaldo = document.getElementById('card-saldo');
     if (elSaldo) elSaldo.textContent = formatarMoeda(saldo);
 
     const cardInvestir = document.getElementById('card-investir');
-    if (cardInvestir) {
-        cardInvestir.textContent = formatarMoeda(valorInvestimento);
-    }
+    if (cardInvestir) cardInvestir.textContent = formatarMoeda(investimento);
 }
 
 // ==========================================
@@ -94,6 +115,9 @@ async function salvarTransacao(dados) {
         if (resposta.ok) {
             idEdicao = null;
             carregarTransacoes(); 
+        } else if (resposta.status !== 401) {
+            const detalhe = await resposta.json().catch(() => ({}));
+            alert(detalhe.erro || 'Não foi possível salvar. Tente novamente.');
         }
     } catch (erro) {
         console.error("Erro ao salvar:", erro);
@@ -129,34 +153,71 @@ async function excluirTransacaoAtual() {
 }
 
 // ==========================================
+// LEITURA E ESCRITA DOS CAMPOS
+// ==========================================
+let anoMesEdicao = null; // mês original do lançamento em edição (o dia pode mudar, o mês não)
+
+// 1000.5 -> "1000,50". Evita que o ponto decimal seja lido como separador de milhar ao salvar.
+function valorParaCampo(valor) {
+    return (Number(valor) || 0).toFixed(2).replace('.', ',');
+}
+
+// Aceita "1.234,56", "1234,56", "R$ 50" e "50.5"
+function lerValorCampo(texto) {
+    let s = String(texto ?? '').replace(/R\$/g, '').replace(/\s/g, '');
+    if (s.includes(',')) {
+        s = s.replace(/\./g, '').replace(',', '.');   // formato brasileiro
+    } else if (!/^\d+\.\d{1,2}$/.test(s)) {
+        s = s.replace(/\./g, '');                      // ponto como milhar (1.000)
+    }
+    return parseFloat(s);
+}
+
+function diaDaData(data) {
+    return parseInt((data || '').slice(8, 10), 10) || 1;
+}
+
+// Novo lançamento usa o mês atual; edição mantém o mês que o lançamento já tinha
+function mesDeReferencia() {
+    return idEdicao && anoMesEdicao ? anoMesEdicao : anoMesAtual();
+}
+
+// ==========================================
 // FUNÇÃO DE ABRIR EDIÇÃO
 // ==========================================
 function abrirEdicao(id) {
-    idEdicao = id;
     const t = todasTransacoes.find(item => item.id === id);
     if (!t) return;
-    
+
+    idEdicao = id;
+    anoMesEdicao = (t.data || '').slice(0, 7) || anoMesAtual();
+
     // Mostra os botões de excluir pois estamos em modo de edição
     alternarBotoesExcluir(true);
 
     if (t.tipo === 'receita') {
-        if (document.getElementById('rec-valor')) document.getElementById('rec-valor').value = t.valor;
-        if (document.getElementById('rec-data')) document.getElementById('rec-data').value = t.data;
-        if (document.getElementById('rec-descricao')) document.getElementById('rec-descricao').value = t.descricao;
-        if (document.getElementById('rec-tipo')) document.getElementById('rec-tipo').value = t.categoria;
-        if (document.getElementById('rec-futuro')) document.getElementById('rec-futuro').checked = t.flag_futuro;
+        const naoFixo = t.valor_fixo === 0 || t.valor_fixo === false;
+        document.getElementById('rec-valor').value = valorParaCampo(t.valor);
+        document.getElementById('rec-descricao').value = t.descricao;
+        document.getElementById('rec-tipo').value = t.categoria || '';
+        document.getElementById('rec-dia').value = diaDaData(t.data);
+        document.getElementById('rec-nao-fixo').checked = naoFixo;
+        preencherOpcoesMes(anoMesEdicao);
+        document.getElementById('rec-futuro').checked = !!t.flag_futuro;
+        atualizarCamposReceita();
         abrirModal('modal-receita');
     } else if (t.tipo === 'despesa-fixa') {
-        if (document.getElementById('df-valor')) document.getElementById('df-valor').value = t.valor;
-        if (document.getElementById('df-vencimento')) document.getElementById('df-vencimento').value = t.data;
-        if (document.getElementById('df-descricao')) document.getElementById('df-descricao').value = t.descricao;
+        document.getElementById('df-valor').value = valorParaCampo(t.valor);
+        document.getElementById('df-descricao').value = t.descricao;
+        document.getElementById('df-dia').value = diaDaData(t.data);
         abrirModal('modal-despesa-fixa');
     } else if (t.tipo === 'despesa-variavel') {
-        if (document.getElementById('dv-valor')) document.getElementById('dv-valor').value = t.valor;
-        if (document.getElementById('dv-data')) document.getElementById('dv-data').value = t.data;
-        if (document.getElementById('dv-descricao')) document.getElementById('dv-descricao').value = t.descricao;
-        if (document.getElementById('dv-categoria')) document.getElementById('dv-categoria').value = t.categoria;
-        if (document.getElementById('dv-parcelado')) document.getElementById('dv-parcelado').checked = t.flag_parcelado;
+        const semData = !!t.sem_data;
+        document.getElementById('dv-valor').value = valorParaCampo(t.valor);
+        document.getElementById('dv-descricao').value = t.descricao;
+        document.getElementById('dv-dia').value = semData ? new Date().getDate() : diaDaData(t.data);
+        document.querySelector(`input[name="dv-data-opcao"][value="${semData ? 'sem' : 'com'}"]`).checked = true;
+        atualizarCamposDespesaVariavel();
         abrirModal('modal-despesa-variavel');
     }
 }
@@ -165,11 +226,14 @@ const btnAddModal = document.getElementById('btn-adicionar');
 if (btnAddModal) {
     btnAddModal.addEventListener('click', () => {
         idEdicao = null;
+        anoMesEdicao = null;
         // Oculta os botões de excluir ao criar um novo registro
         alternarBotoesExcluir(false);
         if (document.getElementById('form-receita')) document.getElementById('form-receita').reset();
         if (document.getElementById('form-despesa-fixa')) document.getElementById('form-despesa-fixa').reset();
         if (document.getElementById('form-despesa-variavel')) document.getElementById('form-despesa-variavel').reset();
+        // Dia de hoje, mês atual e campos no estado padrão (função do main.js)
+        if (typeof prepararFormulariosNovos === 'function') prepararFormulariosNovos();
     });
 }
 
@@ -180,13 +244,21 @@ const formRec = document.getElementById('form-receita');
 if (formRec) {
     formRec.addEventListener('submit', (e) => {
         e.preventDefault();
-        let valSujo = document.getElementById('rec-valor').value;
-        let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+        const valor = lerValorCampo(document.getElementById('rec-valor').value);
+        if (!(valor > 0)) { alert('Informe um valor válido, maior que zero.'); return; }
+
+        // Valor não fixo: o usuário escolhe dia e mês. Fixo: só o dia (mês e ano são os atuais).
+        const naoFixo = document.getElementById('rec-nao-fixo').checked;
+        const anoMes = naoFixo ? document.getElementById('rec-mes').value : mesDeReferencia();
 
         salvarTransacao({
-            tipo: 'receita', data: document.getElementById('rec-data').value,
-            valor: valorLimpo, descricao: document.getElementById('rec-descricao').value,
-            categoria: document.getElementById('rec-tipo').value, flag_futuro: document.getElementById('rec-futuro').checked
+            tipo: 'receita',
+            data: montarData(anoMes, document.getElementById('rec-dia').value),
+            valor: valor,
+            descricao: document.getElementById('rec-descricao').value,
+            categoria: document.getElementById('rec-tipo').value,
+            flag_futuro: document.getElementById('rec-futuro').checked,
+            valor_fixo: !naoFixo
         });
         fecharModal('modal-receita'); e.target.reset();
     });
@@ -196,12 +268,14 @@ const formDF = document.getElementById('form-despesa-fixa');
 if (formDF) {
     formDF.addEventListener('submit', (e) => {
         e.preventDefault();
-        let valSujo = document.getElementById('df-valor').value;
-        let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+        const valor = lerValorCampo(document.getElementById('df-valor').value);
+        if (!(valor > 0)) { alert('Informe um valor válido, maior que zero.'); return; }
 
         salvarTransacao({
-            tipo: 'despesa-fixa', data: document.getElementById('df-vencimento').value,
-            valor: valorLimpo, descricao: document.getElementById('df-descricao').value
+            tipo: 'despesa-fixa',
+            data: montarData(mesDeReferencia(), document.getElementById('df-dia').value),
+            valor: valor,
+            descricao: document.getElementById('df-descricao').value
         });
         fecharModal('modal-despesa-fixa'); e.target.reset();
     });
@@ -211,30 +285,34 @@ const formDV = document.getElementById('form-despesa-variavel');
 if (formDV) {
     formDV.addEventListener('submit', (e) => {
         e.preventDefault();
-        let valSujo = document.getElementById('dv-valor').value;
-        let valorLimpo = parseFloat(valSujo.toString().replace('R$', '').replace(/\./g, '').replace(',', '.').trim());
+        const valor = lerValorCampo(document.getElementById('dv-valor').value);
+        if (!(valor > 0)) { alert('Informe um valor válido, maior que zero.'); return; }
+
+        // "Não possui data": vale para o mês, sem dia específico (guardado como dia 1 + sem_data)
+        const possuiData = document.querySelector('input[name="dv-data-opcao"]:checked').value === 'com';
+        const anoMes = mesDeReferencia();
 
         salvarTransacao({
-            tipo: 'despesa-variavel', data: document.getElementById('dv-data').value,
-            valor: valorLimpo, descricao: document.getElementById('dv-descricao').value,
-            categoria: document.getElementById('dv-categoria').value, flag_parcelado: document.getElementById('dv-parcelado').checked
+            tipo: 'despesa-variavel',
+            data: possuiData ? montarData(anoMes, document.getElementById('dv-dia').value) : `${anoMes}-01`,
+            valor: valor,
+            descricao: document.getElementById('dv-descricao').value,
+            sem_data: !possuiData
         });
         fecharModal('modal-despesa-variavel'); e.target.reset();
     });
 }
 
 // ==========================================
-// CONTROLE DE FILTRO
+// CONTROLE DE FILTRO (somente por descrição / nome)
 // ==========================================
-let filtroAtivo = { descricao: '', categoria: '' };
+let filtroAtivo = { descricao: '' };
 
 const btnFiltro = document.getElementById('btn-filtro');
 if (btnFiltro) {
     btnFiltro.addEventListener('click', () => {
         const inputDesc = document.getElementById('filtro-descricao');
-        const inputCat = document.getElementById('filtro-categoria');
         if (inputDesc) inputDesc.value = filtroAtivo.descricao;
-        if (inputCat) inputCat.value = filtroAtivo.categoria;
         abrirModal('modal-filtro');
     });
 }
@@ -244,9 +322,7 @@ if (formFiltro) {
     formFiltro.addEventListener('submit', (e) => {
         e.preventDefault();
         const inputDesc = document.getElementById('filtro-descricao');
-        const inputCat = document.getElementById('filtro-categoria');
         filtroAtivo.descricao = inputDesc ? inputDesc.value.toLowerCase().trim() : '';
-        filtroAtivo.categoria = inputCat ? inputCat.value.toLowerCase().trim() : '';
         fecharModal('modal-filtro');
         renderizarLista(todasTransacoes);
         if (typeof atualizarGrafico === 'function') {
@@ -259,7 +335,6 @@ const btnLimparFiltro = document.getElementById('btn-limpar-filtro');
 if (btnLimparFiltro) {
     btnLimparFiltro.addEventListener('click', () => {
         filtroAtivo.descricao = '';
-        filtroAtivo.categoria = '';
         const formFiltroEl = document.getElementById('form-filtro');
         if (formFiltroEl) formFiltroEl.reset();
         fecharModal('modal-filtro');
@@ -274,7 +349,6 @@ if (btnLimparFiltro) {
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         filtroAtivo.descricao = '';
-        filtroAtivo.categoria = '';
         const formFiltroEl = document.getElementById('form-filtro');
         if (formFiltroEl) formFiltroEl.reset();
         // Dados já estão em memória: só redesenha a lista (o gráfico se atualiza pelo grafico.js)
@@ -312,8 +386,7 @@ function renderizarListaGeral(transacoes) {
     const lancamentos = transacoes.filter(t => {
         if (!TIPOS[t.tipo]) return false;
         const matchDesc = filtroAtivo.descricao === '' || (t.descricao && t.descricao.toLowerCase().includes(filtroAtivo.descricao));
-        const matchCat = filtroAtivo.categoria === '' || (t.categoria && t.categoria.toLowerCase().includes(filtroAtivo.categoria));
-        return matchDesc && matchCat;
+        return matchDesc;
     });
 
     // 2. Mais recentes primeiro
@@ -326,10 +399,10 @@ function renderizarListaGeral(transacoes) {
 
     // 3. Linha de Investimento (calculada pela % escolhida sobre a receita filtrada)
     const totalReceitas = lancamentos
-        .filter(t => t.tipo === 'receita')
+        .filter(t => t.tipo === 'receita' && !receitaPendente(t))
         .reduce((soma, t) => soma + (Number(t.valor) || 0), 0);
     const valorInvestimento = totalReceitas * (porcentagemInvestimento / 100);
-    const semFiltroAtivo = filtroAtivo.descricao === '' && filtroAtivo.categoria === '';
+    const semFiltroAtivo = filtroAtivo.descricao === '';
     const mostrarInvestimento = semFiltroAtivo && valorInvestimento > 0;
 
     if (lancamentos.length === 0 && !mostrarInvestimento) {
@@ -337,24 +410,17 @@ function renderizarListaGeral(transacoes) {
         return;
     }
 
-    const colunas = "display: grid; grid-template-columns: 95px 1fr 130px 150px 28px; gap: 12px; align-items: center;";
+    const colunas = "display: grid; grid-template-columns: 95px 1fr 130px 150px; gap: 12px; align-items: center;";
     listContainer.innerHTML = '';
 
     const cabecalho = document.createElement('div');
     cabecalho.style = `${colunas} padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 13px; font-weight: 600;`;
-    cabecalho.innerHTML = `<span>Data</span><span>Descrição</span><span>Tipo</span><span style="text-align: right;">Valor</span><span></span>`;
+    cabecalho.innerHTML = `<span>Data</span><span>Descrição</span><span>Tipo</span><span style="text-align: right;">Valor</span>`;
     listContainer.appendChild(cabecalho);
 
-    const criarLinha = ({ data, descricao, categoria, tipo, valor, id }) => {
+    const criarLinha = ({ data, descricao, categoria, tipo, valor, selo = '' }) => {
         const cfg = TIPOS[tipo];
         const sinalStr = cfg.sinal ? `${cfg.sinal} ` : '';
-        const botaoEditar = id !== undefined ? `
-            <button onclick="abrirEdicao(${id})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; padding: 4px;" title="Editar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-            </button>` : '';
         const subcategoria = categoria
             ? `<span style="display: block; font-size: 12px; font-weight: 500; color: var(--text-muted); margin-top: 2px;">${escaparHTML(categoria)}</span>`
             : '';
@@ -363,21 +429,20 @@ function renderizarListaGeral(transacoes) {
         item.style = `${colunas} padding: 14px 0; border-bottom: 1px solid var(--border-color);`;
         item.innerHTML = `
             <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">${data ? formatarDataBR(data) : '—'}</span>
-            <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(descricao)}${subcategoria}</span>
+            <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(descricao)}${selo}${subcategoria}</span>
             <span><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: ${cfg.cor}; background-color: color-mix(in srgb, ${cfg.cor} 12%, transparent);">${cfg.rotulo}</span></span>
             <span style="text-align: right; font-weight: 600; color: ${cfg.cor}; font-size: 15px;">${sinalStr}${formatarMoeda(valor)}</span>
-            <span>${botaoEditar}</span>
         `;
         listContainer.appendChild(item);
     };
 
     lancamentos.forEach(t => criarLinha({
-        data: t.data,
+        data: t.sem_data ? '' : t.data, // despesa variável "não possui data" mostra —
         descricao: t.descricao,
         categoria: t.tipo === 'despesa-fixa' ? '' : t.categoria,
         tipo: t.tipo,
         valor: t.valor,
-        id: t.id
+        selo: seloFuturo(t)
     }));
 
     if (mostrarInvestimento) {
@@ -412,8 +477,7 @@ function renderizarLista(transacoes) {
     const transacoesAba = transacoes.filter(t => {
         if (t.tipo !== abaAtiva) return false;
         const matchDesc = filtroAtivo.descricao === '' || (t.descricao && t.descricao.toLowerCase().includes(filtroAtivo.descricao));
-        const matchCat = filtroAtivo.categoria === '' || (t.categoria && t.categoria.toLowerCase().includes(filtroAtivo.categoria));
-        return matchDesc && matchCat;
+        return matchDesc;
     });
     
     if (transacoesAba.length === 0) {
@@ -430,7 +494,7 @@ function renderizarLista(transacoes) {
     
     transacoesAba.forEach(t => {
         const partesData = t.data ? t.data.split('-') : [];
-        const dataFormatada = partesData.length === 3 ? `${partesData[2]}/${partesData[1]}/${partesData[0]}` : t.data;
+        const dataFormatada = t.sem_data ? '—' : (partesData.length === 3 ? `${partesData[2]}/${partesData[1]}/${partesData[0]}` : t.data);
         const isReceita = t.tipo === 'receita';
         const corValor = isReceita ? 'var(--color-green)' : 'var(--text-main)';
         const sinal = isReceita ? '+' : '-';
@@ -441,7 +505,7 @@ function renderizarLista(transacoes) {
         item.innerHTML = `
             <div style="display: flex; align-items: center; gap: 24px;">
                 <span style="font-size: 14px; color: var(--text-muted); min-width: 90px; font-weight: 500;">${dataFormatada}</span>
-                <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(t.descricao)}</span>
+                <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(t.descricao)}${seloFuturo(t)}</span>
             </div>
 
             <div style="display: flex; align-items: center; gap: 12px;">

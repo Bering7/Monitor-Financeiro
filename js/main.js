@@ -84,11 +84,11 @@ const investValueDisplay = document.getElementById('invest-value-display');
 const btnPercents = document.querySelectorAll('.btn-percent');
 
 // Função auxiliar para somar as Receitas Reais vindas do api.js
+// (receitas marcadas como "Recebimento futuro" só entram quando o dia e o mês chegam)
 function obterReceitaTotalReal() {
-    if (typeof todasTransacoes !== 'undefined' && Array.isArray(todasTransacoes)) {
-        return todasTransacoes
-            .filter(t => t.tipo === 'receita')
-            .reduce((total, t) => total + Number(t.valor), 0);
+    if (typeof todasTransacoes !== 'undefined' && Array.isArray(todasTransacoes)
+        && typeof calcularResumo === 'function') {
+        return calcularResumo(todasTransacoes).receitas;
     }
     return 0;
 }
@@ -205,3 +205,103 @@ function atualizarDataAtual() {
 atualizarDataAtual();
 // Se a aba ficar aberta durante a virada do dia, a data se corrige sozinha
 setInterval(atualizarDataAtual, 60 * 1000);
+
+
+// ==========================================
+// DATAS E CAMPOS DOS FORMULÁRIOS (MODAIS)
+// ==========================================
+function dois(n) {
+    return String(n).padStart(2, '0');
+}
+
+// Data local de hoje no formato AAAA-MM-DD
+function hojeISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}`;
+}
+
+// Mês atual no formato AAAA-MM
+function anoMesAtual() {
+    return hojeISO().slice(0, 7);
+}
+
+// Junta 'AAAA-MM' + dia. Se o dia não existe no mês (31 em abril), usa o último dia.
+function montarData(anoMes, dia) {
+    const [ano, mes] = anoMes.split('-').map(Number);
+    const ultimoDia = new Date(ano, mes, 0).getDate();
+    const d = Math.min(Math.max(parseInt(dia, 10) || 1, 1), ultimoDia);
+    return `${anoMes}-${dois(d)}`;
+}
+
+// Preenche o seletor de mês da receita: mês atual + próximos 11
+function preencherOpcoesMes(anoMesSelecionado) {
+    const select = document.getElementById('rec-mes');
+    if (!select) return;
+
+    const hoje = new Date();
+    const valores = [];
+    let html = '';
+    for (let i = 0; i < 12; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+        const valor = `${d.getFullYear()}-${dois(d.getMonth() + 1)}`;
+        valores.push(valor);
+        html += `<option value="${valor}">${MESES_PT[d.getMonth()]}/${d.getFullYear()}</option>`;
+    }
+    // Ao editar um lançamento de um mês que já não está na lista, mantém esse mês disponível
+    if (anoMesSelecionado && !valores.includes(anoMesSelecionado)) {
+        const [a, mm] = anoMesSelecionado.split('-').map(Number);
+        html = `<option value="${anoMesSelecionado}">${MESES_PT[mm - 1]}/${a}</option>` + html;
+    }
+    select.innerHTML = html;
+    select.value = anoMesSelecionado || anoMesAtual();
+}
+
+// Receita: "Valor não fixo" mostra o seletor de mês
+function atualizarCamposReceita() {
+    const naoFixo = document.getElementById('rec-nao-fixo');
+    const grupoMes = document.getElementById('rec-grupo-mes');
+    if (naoFixo && grupoMes) grupoMes.style.display = naoFixo.checked ? 'flex' : 'none';
+}
+
+// Receita não fixa em outro mês: marca "Recebimento futuro" automaticamente
+function sincronizarFuturoReceita() {
+    const naoFixo = document.getElementById('rec-nao-fixo');
+    const mes = document.getElementById('rec-mes');
+    const futuro = document.getElementById('rec-futuro');
+    if (!naoFixo || !mes || !futuro) return;
+    futuro.checked = naoFixo.checked && mes.value !== anoMesAtual();
+}
+
+// Despesa variável: "Não possui data" esconde o campo Dia
+function atualizarCamposDespesaVariavel() {
+    const grupo = document.getElementById('dv-grupo-dia');
+    const dia = document.getElementById('dv-dia');
+    const semData = document.querySelector('input[name="dv-data-opcao"][value="sem"]');
+    if (!grupo || !dia || !semData) return;
+    grupo.style.display = semData.checked ? 'none' : 'flex';
+    dia.required = !semData.checked; // campo escondido não pode bloquear o envio
+}
+
+// Estado inicial de um formulário NOVO: dia de hoje, mês atual, opções padrão
+function prepararFormulariosNovos() {
+    const hoje = new Date().getDate();
+    ['rec-dia', 'df-dia', 'dv-dia'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = hoje;
+    });
+    preencherOpcoesMes(anoMesAtual());
+    atualizarCamposReceita();
+    atualizarCamposDespesaVariavel();
+}
+
+const recNaoFixo = document.getElementById('rec-nao-fixo');
+if (recNaoFixo) recNaoFixo.addEventListener('change', () => { atualizarCamposReceita(); sincronizarFuturoReceita(); });
+
+const recMes = document.getElementById('rec-mes');
+if (recMes) recMes.addEventListener('change', sincronizarFuturoReceita);
+
+document.querySelectorAll('input[name="dv-data-opcao"]').forEach(radio => {
+    radio.addEventListener('change', atualizarCamposDespesaVariavel);
+});
+
+prepararFormulariosNovos();
