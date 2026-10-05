@@ -51,10 +51,11 @@ function atualizarGrafico() {
 
         transacoesGlobais.forEach(t => {
             const matchDesc = typeof filtroAtivo === 'undefined' || filtroAtivo.descricao === '' || (t.descricao && t.descricao.toLowerCase().includes(filtroAtivo.descricao));
-            const matchCat = typeof filtroAtivo === 'undefined' || filtroAtivo.categoria === '' || (t.categoria && t.categoria.toLowerCase().includes(filtroAtivo.categoria));
-            if (!matchDesc || !matchCat) return;
+            if (!matchDesc) return;
 
             if (t.tipo === 'receita') {
+                // "Recebimento futuro" só conta quando o dia e o mês chegam
+                if (typeof receitaPendente === 'function' && receitaPendente(t)) return;
                 totalReceitas += Number(t.valor) || 0;
             } else if (t.tipo === 'despesa-fixa') {
                 totalDespesasFixas += Number(t.valor) || 0;
@@ -96,9 +97,9 @@ function atualizarGrafico() {
         // Pega apenas as transações da aba ativa
         const dadosAba = transacoesGlobais.filter(t => {
             if (t.tipo !== abaAtiva) return false;
+            if (typeof receitaPendente === 'function' && receitaPendente(t)) return false;
             const matchDesc = typeof filtroAtivo === 'undefined' || filtroAtivo.descricao === '' || (t.descricao && t.descricao.toLowerCase().includes(filtroAtivo.descricao));
-            const matchCat = typeof filtroAtivo === 'undefined' || filtroAtivo.categoria === '' || (t.categoria && t.categoria.toLowerCase().includes(filtroAtivo.categoria));
-            return matchDesc && matchCat;
+            return matchDesc;
         });
 
         if (dadosAba.length === 0) {
@@ -119,8 +120,8 @@ function atualizarGrafico() {
         dadosAba.forEach(t => {
             let chave_agrupamento;
             
-            // Se for Despesa Fixa, agrupa pelo Nome (descrição). Senão, agrupa pela Categoria.
-            if (abaAtiva === 'despesa-fixa') {
+            // Despesas (fixa e variável) agrupam pelo Nome (descrição). Receita agrupa pelo tipo de renda.
+            if (abaAtiva === 'despesa-fixa' || abaAtiva === 'despesa-variavel') {
                 chave_agrupamento = t.descricao || 'Outros';
             } else {
                 chave_agrupamento = t.categoria || 'Outros';
@@ -183,6 +184,23 @@ function atualizarGrafico() {
                         padding: 20,
                         color: corTexto,
                         font: { family: "'Inter', sans-serif", size: 12 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        // Linha 1: nome da fatia (categoria / descrição)
+                        title: (itens) => itens[0].label,
+                        // Linha 2: valor e porcentagem em relação ao saldo total (card Saldo)
+                        label: (item) => {
+                            const valor = Number(item.parsed) || 0;
+                            const saldo = typeof obterResumo === 'function' ? obterResumo().saldo : 0;
+                            const moeda = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            if (!(saldo > 0)) return moeda; // sem saldo positivo não há porcentagem que faça sentido
+                            const pct = ((valor / saldo) * 100).toLocaleString('pt-BR', {
+                                minimumFractionDigits: 1, maximumFractionDigits: 1
+                            });
+                            return `${moeda} (${pct}%)`;
+                        }
                     }
                 }
             }
