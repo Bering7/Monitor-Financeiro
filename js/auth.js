@@ -55,7 +55,11 @@ function definirModoAuth(modo) {
         ? 'Crie sua conta para guardar seus dados e acessá-los em qualquer dispositivo.'
         : 'Entre na sua conta para ver seus dados em qualquer dispositivo.';
     document.getElementById('auth-grupo-senha2').style.display = registro ? 'flex' : 'none';
-    document.getElementById('auth-senha').setAttribute('autocomplete', registro ? 'new-password' : 'current-password');
+    const campoSenha = document.getElementById('auth-senha');
+    campoSenha.setAttribute('autocomplete', registro ? 'new-password' : 'current-password');
+    campoSenha.setAttribute('placeholder', registro ? 'Mínimo de 8 caracteres' : 'Sua senha');
+    // O mínimo de 8 caracteres vale só para criar conta (contas antigas e a de testes podem ter senha menor)
+    if (registro) campoSenha.setAttribute('minlength', '8'); else campoSenha.removeAttribute('minlength');
     document.getElementById('btn-auth-enviar').textContent = registro ? 'Criar conta' : 'Entrar';
     document.getElementById('btn-auth-alternar').textContent = registro
         ? 'Já tenho conta. Entrar'
