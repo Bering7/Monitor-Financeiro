@@ -3,7 +3,7 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer, BadSignature
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import sqlite3
 import os
 import re
@@ -15,8 +15,15 @@ CORS(app)
 
 # Pega o caminho exato da pasta onde este arquivo (app.py) está
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-# Força o banco de dados a ser criado dentro dessa mesma pasta
+# O banco é SEMPRE um arquivo físico (nunca ':memory:').
+# Em produção, aponte DB_PATH para um disco persistente (ex.: /var/data/banco.db no Render).
 DB_NAME = os.environ.get('DB_PATH', os.path.join(BASE_DIR, 'banco.db'))
+os.makedirs(os.path.dirname(DB_NAME), exist_ok=True)
+
+# Conta de testes criada automaticamente (defina CRIAR_CONTA_TESTE=0 para desligar em produção)
+CRIAR_CONTA_TESTE = os.environ.get('CRIAR_CONTA_TESTE', '1') != '0'
+CONTA_TESTE_EMAIL = 'teste@teste.com'
+CONTA_TESTE_SENHA = '123'
 
 # ==========================================
 # CONFIGURAÇÃO DE SEGURANÇA
@@ -74,10 +81,65 @@ def inicializar_banco():
     colunas = [c['name'] for c in cursor.execute('PRAGMA table_info(transacoes)')]
     if 'usuario_id' not in colunas:
         cursor.execute('ALTER TABLE transacoes ADD COLUMN usuario_id INTEGER')
+    # sem_data: despesa variável do mês sem dia específico | valor_fixo: receita fixa (1) ou não fixa (0)
+    if 'sem_data' not in colunas:
+        cursor.execute('ALTER TABLE transacoes ADD COLUMN sem_data INTEGER NOT NULL DEFAULT 0')
+    if 'valor_fixo' not in colunas:
+        cursor.execute('ALTER TABLE transacoes ADD COLUMN valor_fixo INTEGER NOT NULL DEFAULT 1')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_transacoes_usuario ON transacoes(usuario_id)')
 
     conn.commit()
+
+    if CRIAR_CONTA_TESTE:
+        criar_conta_de_testes(conn)
+
     conn.close()
+
+
+def _data_no_mes(ano_mes, dia):
+    """'2026-10' + 31 -> '2026-10-31' (ajusta para o último dia se o mês for menor)."""
+    ano, mes = map(int, ano_mes.split('-'))
+    ultimo = (date(ano + (mes == 12), mes % 12 + 1, 1) - timedelta(days=1)).day
+    return f"{ano_mes}-{min(dia, ultimo):02d}"
+
+
+def criar_conta_de_testes(conn):
+    """Cria teste@teste.com com dados fictícios. Só roda se a conta ainda não existir,
+    então o que você apagar nela não volta a cada reinício."""
+    cursor = conn.cursor()
+    if cursor.execute('SELECT 1 FROM usuarios WHERE email = ?', (CONTA_TESTE_EMAIL,)).fetchone():
+        return
+
+    cursor.execute(
+        'INSERT INTO usuarios (email, senha_hash, porcentagem_investimento) VALUES (?, ?, ?)',
+        (CONTA_TESTE_EMAIL, generate_password_hash(CONTA_TESTE_SENHA), 10)
+    )
+    usuario_id = cursor.lastrowid
+
+    hoje = date.today()
+    mes = hoje.strftime('%Y-%m')
+    proximo = (hoje.replace(day=1) + timedelta(days=32)).strftime('%Y-%m')
+
+    # (tipo, data, valor, descricao, categoria, flag_futuro, sem_data, valor_fixo)
+    dados = [
+        ('receita',          _data_no_mes(mes, 5),      5000.00, 'Salário',           'Salário',    0, 0, 1),
+        ('receita',          _data_no_mes(mes, 15),      800.00, 'Projeto freelance', 'Freelance',  0, 0, 0),
+        ('receita',          _data_no_mes(proximo, 10), 1200.00, 'Bônus',             'Outros',     1, 0, 0),
+        ('despesa-fixa',     _data_no_mes(mes, 10),     1200.00, 'Aluguel',           '',           0, 0, 1),
+        ('despesa-fixa',     _data_no_mes(mes, 15),      110.00, 'Internet',          '',           0, 0, 1),
+        ('despesa-fixa',     _data_no_mes(mes, 20),      180.00, 'Energia',           '',           0, 0, 1),
+        ('despesa-fixa',     _data_no_mes(mes, 5),        90.00, 'Academia',          '',           0, 0, 1),
+        ('despesa-variavel', _data_no_mes(mes, 8),       350.00, 'Mercado',           '',           0, 0, 1),
+        ('despesa-variavel', _data_no_mes(mes, 12),       60.00, 'Delivery',          '',           0, 0, 1),
+        ('despesa-variavel', _data_no_mes(mes, 1),       120.00, 'Transporte',        '',           0, 1, 1),
+        ('despesa-variavel', _data_no_mes(mes, 18),      150.00, 'Lazer',             '',           0, 0, 1),
+    ]
+    cursor.executemany('''
+        INSERT INTO transacoes
+            (tipo, data, valor, descricao, categoria, flag_futuro, sem_data, valor_fixo, usuario_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', [d + (usuario_id,) for d in dados])
+    conn.commit()
 
 
 # Roda ao importar o arquivo, assim também funciona com o gunicorn (Render),
@@ -147,12 +209,7 @@ def registro():
             return jsonify({"erro": "Este e-mail já está cadastrado."}), 409
 
         usuario_id = cursor.lastrowid
-
-        # A primeira conta criada herda os lançamentos antigos (de antes das contas existirem)
-        total_usuarios = cursor.execute('SELECT COUNT(*) FROM usuarios').fetchone()[0]
-        if total_usuarios == 1:
-            cursor.execute('UPDATE transacoes SET usuario_id = ? WHERE usuario_id IS NULL', (usuario_id,))
-
+        # Toda conta nova começa limpa: nenhum lançamento é copiado ou herdado.
         conn.commit()
     finally:
         conn.close()
@@ -239,6 +296,11 @@ def validar_transacao(dados):
 
     categoria = str(dados.get('categoria') or '').strip()[:100]
 
+    # Receita: "valor fixo" (padrão) fica até ser removida; "não fixo" some no mês seguinte ao escolhido.
+    valor_fixo = 0 if (tipo == 'receita' and 'valor_fixo' in dados and not dados['valor_fixo']) else 1
+    # Despesa variável pode ser registrada no mês, sem um dia específico.
+    sem_data = 1 if (tipo == 'despesa-variavel' and dados.get('sem_data')) else 0
+
     return {
         'tipo': tipo,
         'data': data,
@@ -247,6 +309,8 @@ def validar_transacao(dados):
         'categoria': categoria,
         'flag_parcelado': 1 if dados.get('flag_parcelado') else 0,
         'flag_futuro': 1 if dados.get('flag_futuro') else 0,
+        'sem_data': sem_data,
+        'valor_fixo': valor_fixo,
     }, None
 
 
@@ -266,10 +330,11 @@ def criar_transacao():
     conn = obter_conexao()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO transacoes (tipo, data, valor, descricao, categoria, flag_parcelado, flag_futuro, usuario_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO transacoes
+            (tipo, data, valor, descricao, categoria, flag_parcelado, flag_futuro, sem_data, valor_fixo, usuario_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (campos['tipo'], campos['data'], campos['valor'], campos['descricao'], campos['categoria'],
-          campos['flag_parcelado'], campos['flag_futuro'], g.usuario_id))
+          campos['flag_parcelado'], campos['flag_futuro'], campos['sem_data'], campos['valor_fixo'], g.usuario_id))
     
     conn.commit()
     novo_id = cursor.lastrowid
@@ -277,12 +342,32 @@ def criar_transacao():
     
     return jsonify({"mensagem": "Salvo com sucesso!", "id": novo_id}), 201
 
+def data_de_hoje():
+    """Usa a data do navegador (?hoje=AAAA-MM-DD) para respeitar o fuso do usuário;
+    se não vier ou for inválida, usa a data do servidor."""
+    valor = request.args.get('hoje', '')
+    try:
+        datetime.strptime(valor, '%Y-%m-%d')
+        return valor
+    except ValueError:
+        return date.today().isoformat()
+
+
 # Rota 3: Buscar as transações do usuário logado
 @app.route('/api/transacoes', methods=['GET'])
 @login_obrigatorio
 def listar_transacoes():
     conn = obter_conexao()
     cursor = conn.cursor()
+
+    # Receita de valor NÃO fixo é excluída automaticamente no mês seguinte ao mês escolhido
+    cursor.execute('''
+        DELETE FROM transacoes
+        WHERE usuario_id = ? AND tipo = 'receita' AND valor_fixo = 0
+          AND date(data, 'start of month', '+1 month') <= ?
+    ''', (g.usuario_id, data_de_hoje()))
+    conn.commit()
+
     cursor.execute('SELECT * FROM transacoes WHERE usuario_id = ? ORDER BY data DESC', (g.usuario_id,))
     linhas = cursor.fetchall()
     conn.close()
@@ -322,10 +407,12 @@ def atualizar_transacao(id_transacao):
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE transacoes 
-        SET tipo = ?, data = ?, valor = ?, descricao = ?, categoria = ?, flag_parcelado = ?, flag_futuro = ?
+        SET tipo = ?, data = ?, valor = ?, descricao = ?, categoria = ?, flag_parcelado = ?, flag_futuro = ?,
+            sem_data = ?, valor_fixo = ?
         WHERE id = ? AND usuario_id = ?
     ''', (campos['tipo'], campos['data'], campos['valor'], campos['descricao'], campos['categoria'],
-          campos['flag_parcelado'], campos['flag_futuro'], id_transacao, g.usuario_id))
+          campos['flag_parcelado'], campos['flag_futuro'], campos['sem_data'], campos['valor_fixo'],
+          id_transacao, g.usuario_id))
     
     conn.commit()
     atualizou = cursor.rowcount > 0
