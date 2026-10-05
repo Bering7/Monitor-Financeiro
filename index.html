@@ -155,24 +155,13 @@
             </div>
             <p class="modal-subtitle">Lançamento deste mês.</p>
             <form id="form-receita" class="modal-form">
-                <label>Data</label>
-                <input type="date" id="rec-data" required>
-                
-                <div class="checkbox-group">
-                    <input type="checkbox" id="rec-futuro">
-                    <div class="checkbox-text">
-                        <label for="rec-futuro">Recebimento futuro</label>
-                        <span>Não conta na sua receita até você marcar como recebido.</span>
-                    </div>
-                </div>
-
-                <label>Valor</label>
+                <label for="rec-valor">Valor</label>
                 <input type="text" id="rec-valor" placeholder="R$ 0,00" required>
 
-                <label>Descrição</label>
-                <input type="text" id="rec-descricao" placeholder="Ex.: Mercado, Salário..." required>
+                <label for="rec-descricao">Descrição</label>
+                <input type="text" id="rec-descricao" placeholder="Ex.: Salário, Freela..." required>
 
-                <label>Tipo de renda</label>
+                <label for="rec-tipo">Tipo de renda</label>
                 <select id="rec-tipo">
                     <option value="">Selecione...</option>
                     <option value="Salário">Salário</option>
@@ -180,14 +169,35 @@
                     <option value="Outros">Outros</option>
                 </select>
 
-                <div class="modal-actions">
-                    <button type="button" class="btn-outline" onclick="fecharModal('modal-receita')">Cancelar</button>
-                    <button type="submit" class="btn-primary">Adicionar</button>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="rec-nao-fixo">
+                    <div class="checkbox-text">
+                        <label for="rec-nao-fixo">Valor não fixo</label>
+                        <span>Escolha o mês. A receita é excluída sozinha no mês seguinte.</span>
+                    </div>
                 </div>
 
-                <button type="button" class="btn-excluir" onclick="excluirTransacaoAtual()" style="display: none; background-color: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
-                    Excluir
-                </button>
+                <label for="rec-dia">Dia</label>
+                <input type="number" id="rec-dia" min="1" max="31" inputmode="numeric" placeholder="1 a 31" required>
+
+                <div class="form-grupo" id="rec-grupo-mes" style="display: none;">
+                    <label for="rec-mes">Mês</label>
+                    <select id="rec-mes"></select>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="rec-futuro">
+                    <div class="checkbox-text">
+                        <label for="rec-futuro">Recebimento futuro</label>
+                        <span>Não entra no saldo até o dia e o mês chegarem.</span>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="fecharModal('modal-receita')">Cancelar</button>
+                    <button type="button" class="btn-excluir" onclick="excluirTransacaoAtual()" style="display: none;">Excluir</button>
+                    <button type="submit" class="btn-primary">Adicionar</button>
+                </div>
             </form>
         </div>
     </div>
@@ -201,23 +211,20 @@
             </div>
             <p class="modal-subtitle">Vale deste mês em diante.</p>
             <form id="form-despesa-fixa" class="modal-form">
-                <label>Valor</label>
+                <label for="df-valor">Valor</label>
                 <input type="text" id="df-valor" placeholder="R$ 0,00" required>
 
-                <label>Descrição</label>
+                <label for="df-descricao">Descrição</label>
                 <input type="text" id="df-descricao" placeholder="Ex.: Aluguel, Internet..." required>
 
-                <label>Vencimento</label>
-                <input type="date" id="df-vencimento" required>
+                <label for="df-dia">Dia do vencimento</label>
+                <input type="number" id="df-dia" min="1" max="31" inputmode="numeric" placeholder="1 a 31" required>
 
                 <div class="modal-actions">
                     <button type="button" class="btn-outline" onclick="fecharModal('modal-despesa-fixa')">Cancelar</button>
+                    <button type="button" class="btn-excluir" onclick="excluirTransacaoAtual()" style="display: none;">Excluir</button>
                     <button type="submit" class="btn-primary">Adicionar</button>
                 </div>
-
-                <button type="button" class="btn-excluir" onclick="excluirTransacaoAtual()" style="display: none; background-color: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
-                    Excluir
-                </button>
             </form>
         </div>
     </div>
@@ -231,41 +238,34 @@
             </div>
             <p class="modal-subtitle">Lançamento deste mês.</p>
             <form id="form-despesa-variavel" class="modal-form">
-                <label>Data</label>
-                <input type="date" id="dv-data" required>
-
-                <label>Valor</label>
+                <label for="dv-valor">Valor</label>
                 <input type="text" id="dv-valor" placeholder="R$ 0,00" required>
 
-                <div class="checkbox-group">
-                    <input type="checkbox" id="dv-parcelado">
-                    <label for="dv-parcelado">Parcelado</label>
-                </div>
-
-                <label>Descrição</label>
+                <label for="dv-descricao">Descrição</label>
                 <input type="text" id="dv-descricao" placeholder="Ex.: Mercado, Roupas..." required>
 
-                <label>Categoria</label>
-                <select id="dv-categoria" required>
-                    <option value="">Selecione...</option>
-                    <option value="Mercado">Mercado</option>
-                    <option value="Transporte">Transporte</option>
-                    <option value="Farmácia">Farmácia</option>
-                    <option value="Lazer">Lazer</option>
-                    <option value="Estudos">Estudos</option>
-                    <option value="Delivery">Delivery</option>
-                    <option value="Vestuário">Vestuário</option>
-                    <option value="Exercício">Exercício</option>
-                </select>
+                <label>Data</label>
+                <div class="segmented" role="radiogroup" aria-label="Possui data?">
+                    <label class="segmented-opcao">
+                        <input type="radio" name="dv-data-opcao" value="com" checked>
+                        <span>Possui data</span>
+                    </label>
+                    <label class="segmented-opcao">
+                        <input type="radio" name="dv-data-opcao" value="sem">
+                        <span>Não possui data</span>
+                    </label>
+                </div>
+
+                <div class="form-grupo" id="dv-grupo-dia">
+                    <label for="dv-dia">Dia</label>
+                    <input type="number" id="dv-dia" min="1" max="31" inputmode="numeric" placeholder="1 a 31" required>
+                </div>
 
                 <div class="modal-actions">
                     <button type="button" class="btn-outline" onclick="fecharModal('modal-despesa-variavel')">Cancelar</button>
+                    <button type="button" class="btn-excluir" onclick="excluirTransacaoAtual()" style="display: none;">Excluir</button>
                     <button type="submit" class="btn-primary">Adicionar</button>
                 </div>
-
-                <button type="button" class="btn-excluir" onclick="excluirTransacaoAtual()" style="display: none; background-color: #ef4444; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 8px;">
-                    Excluir
-                </button>
             </form>
         </div>
     </div>
@@ -312,13 +312,10 @@
                 <h2>Filtrar Transações</h2>
                 <button class="btn-close" onclick="fecharModal('modal-filtro')">×</button>
             </div>
-            <p class="modal-subtitle">Filtre por descrição ou categoria.</p>
+            <p class="modal-subtitle">Busque pela descrição ou nome do lançamento.</p>
             <form id="form-filtro" class="modal-form">
-                <label>Descrição / Nome</label>
+                <label for="filtro-descricao">Descrição / Nome</label>
                 <input type="text" id="filtro-descricao" placeholder="Buscar por descrição...">
-
-                <label>Categoria / Tipo</label>
-                <input type="text" id="filtro-categoria" placeholder="Ex: Salário, Mercado...">
 
                 <div class="modal-actions" style="margin-top: 20px;">
                     <button type="button" class="btn-outline" id="btn-limpar-filtro">Limpar</button>
@@ -338,7 +335,7 @@
                 <input type="email" id="auth-email" autocomplete="email" required placeholder="voce@exemplo.com">
 
                 <label for="auth-senha">Senha</label>
-                <input type="password" id="auth-senha" autocomplete="current-password" required minlength="8" placeholder="Mínimo de 8 caracteres">
+                <input type="password" id="auth-senha" autocomplete="current-password" required placeholder="Sua senha">
 
                 <div class="auth-grupo" id="auth-grupo-senha2" style="display: none;">
                     <label for="auth-senha2">Repita a senha</label>
