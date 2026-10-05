@@ -1,0 +1,10 @@
+# Banco de dados local (contas e lançamentos dos usuários)
+*.db
+*.db-journal
+backend/banco.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
