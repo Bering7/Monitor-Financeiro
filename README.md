@@ -8,10 +8,15 @@ Aplicação web para acompanhar receitas, despesas e investimentos de forma simp
 - **Contas de usuário:** cada pessoa cria uma conta (e-mail e senha) e vê apenas os próprios dados, em qualquer dispositivo.
 - **Cards de resumo:** receita, investimento, despesas e saldo, sempre atualizados.
 - **Lançamentos por tipo:** abas de Receita, Despesa fixa e Despesa variável, com adição, edição e exclusão.
+  - **Receita fixa:** escolhe só o dia; fica até ser removida manualmente.
+  - **Receita de valor não fixo:** escolhe dia e mês; é excluída automaticamente no mês seguinte ao escolhido. Se o mês for diferente do atual, "Recebimento futuro" é marcado sozinho.
+  - **Recebimento futuro:** não entra na receita, no investimento nem no saldo até o dia e o mês chegarem.
+  - **Despesa fixa:** escolhe só o dia do vencimento.
+  - **Despesa variável:** "Possui data" (só o dia) ou "Não possui data" (vale para o mês, sem dia).
 - **Visão Geral:** tabela com todos os lançamentos individuais, ordenados do mais recente para o mais antigo, com a linha de investimento calculada.
 - **Investimento:** define a porcentagem da receita a investir (barra deslizante ou atalhos). O valor investido é descontado do saldo.
-- **Gráfico de rosca:** distribuição por categoria, ajustada conforme a aba selecionada.
-- **Filtro:** busca por descrição e categoria, aplicada à lista e ao gráfico.
+- **Gráfico de rosca:** distribuição por categoria/descrição, ajustada conforme a aba. Ao passar o mouse mostra o nome, o valor e a porcentagem em relação ao saldo total.
+- **Filtro:** busca pela descrição/nome, aplicada à lista e ao gráfico.
 - **Modo claro e escuro:** botão sol/lua no cabeçalho, com a preferência salva no navegador.
 - **Data atual** exibida no cabeçalho.
 
@@ -67,10 +72,17 @@ O servidor sobe em `http://127.0.0.1:5000`. Para usá-lo, aponte a `API_URL` de 
 |--------------|----------------------------------------------------------------------------------------------|
 | `SECRET_KEY` | **Obrigatória em produção.** Texto longo e aleatório que assina os logins. Defina no Render. |
 | `DB_PATH`    | Opcional. Caminho do arquivo do banco SQLite (padrão: `backend/banco.db`).                   |
+| `CRIAR_CONTA_TESTE` | Opcional. `0` desliga a conta de testes (padrão: ligada).                             |
 
 Para gerar uma chave: `python -c "import secrets; print(secrets.token_hex(32))"`.
 
-> A primeira conta criada herda os lançamentos que já existiam no banco antes das contas.
+**Conta de testes:** na primeira inicialização o backend cria `teste@teste.com` (senha `123`) com dados fictícios. Ela só é criada se não existir, então o que você apagar nela não volta a cada reinício. Qualquer outra conta criada pelo cadastro começa vazia.
+
+> A senha da conta de testes é pública. Use-a só para testar e defina `CRIAR_CONTA_TESTE=0` quando for usar o app de verdade.
+
+**Persistência:** o banco é um arquivo SQLite (nunca em memória). No plano gratuito do Render o disco é temporário e é apagado a cada deploy e reinício. Para manter os dados, use um disco persistente (aponte `DB_PATH` para ele, ex.: `/var/data/banco.db`) ou um banco externo.
+
+> Não versione o `banco.db`: ele guarda contas e senhas (criptografadas). O `.gitignore` do projeto já o ignora.
 
 ## 🔌 API
 
