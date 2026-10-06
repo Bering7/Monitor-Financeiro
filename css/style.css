@@ -44,9 +44,14 @@ body {
 
 /* Container Principal */
 .app-container {
-    max-width: 1200px;
+    height: 100vh;
+    max-width: 100%;
     margin: 0 auto;
-    padding: 24px;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden
 }
 
 /* Cabeçalho */
@@ -112,11 +117,6 @@ body {
 
 .btn-action-list:hover {
     background-color: var(--border-color);
-}
-
-/* Para o ícone de olho no título ficar com a cor cinza suave */
-.text-muted {
-    color: var(--text-muted);
 }
 
 .date-selector {
@@ -209,16 +209,40 @@ body {
 /* Área Principal (Listas e Gráficos) */
 .main-content {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: 2fr 1.4fr;
     gap: 24px;
+    flex: 1;
+    min-height: 0;
 }
 
-.list-section, .chart-section {
+/* Container do card da lista */
+.list-section {
     background-color: var(--card-bg);
     border-radius: 16px;
     padding: 24px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden; /* Mantém o cabeçalho "Visão Geral / Filtro" fixo no topo */
+}
+
+/* Container que envolve as linhas da tabela/lista de transações */
+#transaction-list, .list-body, .transactions-wrapper { 
+    flex: 1;
+    overflow-y: auto; /* Apenas este elemento terá scroll! */
+    padding-right: 10px; /* Evita que a barra de rolagem fique colada nos valores */
+}
+
+/* Ajuste no card do gráfico para ele caber na tela sem estourar */
+.chart-section {
+    background-color: var(--card-bg);
+    border-radius: 16px;
+    padding: 24px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .list-header {
