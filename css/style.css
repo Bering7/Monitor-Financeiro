@@ -626,3 +626,134 @@ body {
     background-color: color-mix(in srgb, var(--color-blue) 12%, transparent);
     vertical-align: middle;
 }
+
+/* ===== PADRÃO (desktop) para os elementos novos ===== */
+.header-titulo { display: flex; align-items: center; gap: 12px; }
+.bottom-nav { display: none; }
+
+/* ===== LAYOUT MOBILE ===== */
+@media (max-width: 768px) {
+
+    /* --- Container: ocupa a tela toda e deixa espaço para a barra inferior --- */
+    .app-container {
+        height: 100dvh;
+        min-height: 560px;
+        padding: 12px 12px calc(72px + env(safe-area-inset-bottom));
+        overflow: visible;
+    }
+
+    /* --- Cabeçalho compacto: título + data à esquerda, lua + Sair à direita --- */
+    .top-header {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        grid-template-areas: "titulo tema sair" "data tema sair";
+        column-gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .header-titulo, .header-actions { display: contents; }
+    .top-header h1 { grid-area: titulo; font-size: 22px; line-height: 1.1; }
+    #btn-tema { grid-area: tema; }
+    .user-area { grid-area: sair; }
+    .user-email { display: none; }
+    .date-selector {
+        grid-area: data;
+        padding: 0;
+        background: none;
+        box-shadow: none;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+
+    /* --- Cards 2x2 --- */
+    .summary-cards { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .card { padding: 12px 14px; border-radius: 14px; }
+    .card-header { margin-bottom: 6px; }
+    .card-header .label { font-size: 11px; }
+    .card .value { font-size: 20px; }
+    .btn-ajustar { padding: 3px 10px; font-size: 11px; }
+
+    /* --- Abas horizontais --- */
+    .tabs-container {
+        gap: 0;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .tabs-container::-webkit-scrollbar { display: none; }
+    .tab-btn { padding: 8px 10px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+
+    /* --- Área principal: uma coluna; Início mostra a lista, Gráfico mostra o gráfico --- */
+    .main-content { display: flex; flex-direction: column; gap: 0; }
+    .list-section, .chart-section { flex: 1; height: auto; min-height: 0; padding: 14px; }
+    .chart-section { display: none; }
+    body.view-grafico .chart-section { display: flex; }
+    body.view-grafico .summary-cards,
+    body.view-grafico .list-section { display: none; }
+
+    /* --- Cabeçalho da lista: "Título [filtro]" à esquerda e "+" à direita (só ícones) --- */
+    .list-header { justify-content: flex-start; gap: 8px; margin-bottom: 10px; }
+    .list-header h3 { font-size: 17px; }
+    .list-actions { display: contents; }
+    .list-actions .btn-action-list { font-size: 0; gap: 0; padding: 8px; }
+    .list-actions .btn-action-list svg { width: 18px; height: 18px; }
+    #btn-filtro { order: 2; }
+    #btn-adicionar { order: 3; margin-left: auto; }
+
+    /* --- Visão Geral: cada lançamento vira 2 linhas (o !important vence o estilo inline) --- */
+    .linha-geral {
+        grid-template-columns: auto 1fr auto !important;
+        grid-template-areas: "desc desc valor" "data tipo valor";
+        gap: 2px 10px !important;
+        padding: 10px 0 !important;
+    }
+    .linha-geral.cab-geral { display: none !important; }
+    .linha-geral > :nth-child(1) { grid-area: data; }
+    .linha-geral > :nth-child(2) { grid-area: desc; }
+    .linha-geral > :nth-child(3) { grid-area: tipo; }
+    .linha-geral > :nth-child(4) { grid-area: valor; align-self: center; }
+
+    /* --- Barra inferior fixa --- */
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        z-index: 500;
+        padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+        background-color: var(--card-bg);
+        border-top: 1px solid var(--border-color);
+    }
+    .bottom-nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        padding: 4px 0;
+        background: none;
+        border: none;
+        font: 600 12px var(--font-main);
+        color: var(--text-muted);
+        cursor: pointer;
+    }
+    .bottom-nav-btn.active { color: var(--color-green); }
+
+    /* --- Login: card compacto na metade de cima, longe do teclado --- */
+    .auth-overlay {
+        align-items: flex-start;
+        overflow-y: auto;
+        padding: calc(env(safe-area-inset-top) + 12px) 16px 16px;
+    }
+    .auth-card { margin: 0 auto; padding: 20px; }
+    .auth-card .modal-subtitle { margin-bottom: 16px; }
+    .auth-card .modal-form { gap: 12px; }
+    .auth-erro:empty { display: none; }
+
+    /* --- Campos com 16px: evita o zoom automático do iPhone ao focar --- */
+    .auth-card .modal-form input,
+    .modal-form input[type],
+    .modal-form select { font-size: 16px; }
+    .modal-overlay { padding: 16px; }
+}

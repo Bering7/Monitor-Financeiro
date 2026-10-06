@@ -414,6 +414,7 @@ function renderizarListaGeral(transacoes) {
     listContainer.innerHTML = '';
 
     const cabecalho = document.createElement('div');
+    cabecalho.className = 'linha-geral cab-geral';
     cabecalho.style = `${colunas} padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--border-color); color: var(--text-muted); font-size: 13px; font-weight: 600;`;
     cabecalho.innerHTML = `<span>Data</span><span>Descrição</span><span>Tipo</span><span style="text-align: right;">Valor</span>`;
     listContainer.appendChild(cabecalho);
@@ -426,6 +427,7 @@ function renderizarListaGeral(transacoes) {
             : '';
 
         const item = document.createElement('div');
+        item.className = 'linha-geral';
         item.style = `${colunas} padding: 14px 0; border-bottom: 1px solid var(--border-color);`;
         item.innerHTML = `
             <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">${data ? formatarDataBR(data) : '—'}</span>

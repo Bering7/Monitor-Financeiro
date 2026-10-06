@@ -305,3 +305,22 @@ document.querySelectorAll('input[name="dv-data-opcao"]').forEach(radio => {
 });
 
 prepararFormulariosNovos();
+
+
+// ==========================================
+// NAVEGAÇÃO INFERIOR (CELULAR): Início / Gráfico
+// ==========================================
+function definirVisao(visao) {
+    document.body.classList.toggle('view-grafico', visao === 'grafico');
+    document.querySelectorAll('.bottom-nav-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.view === visao);
+    });
+    // O gráfico não mede tamanho enquanto está escondido: redesenha ao mostrar
+    if (visao === 'grafico' && typeof atualizarGrafico === 'function') {
+        requestAnimationFrame(atualizarGrafico);
+    }
+}
+
+document.querySelectorAll('.bottom-nav-btn').forEach(b => {
+    b.addEventListener('click', () => definirVisao(b.dataset.view));
+});
