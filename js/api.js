@@ -1,7 +1,5 @@
-// Substitua pelo nome real do seu web service no Render
-const API_URL = 'https://monitor-financeiro-backend.onrender.com/api';
 let todasTransacoes = []; // Guarda os dados na memória para usarmos na edição
-let idEdicao = null; // Controla se estamos criando (null) ou editando (número)
+let idEdicao = null; // Controla se estamos criando (null) ou editando (id do lançamento)
 let porcentagemInvestimento = parseFloat(localStorage.getItem('porcentagemInvestimento')) || 0;
 
 function formatarMoeda(valor) {
@@ -11,11 +9,39 @@ function formatarMoeda(valor) {
 // ==========================================
 // BUSCAR DADOS
 // ==========================================
+// Sessão vencida ou token inválido: volta para o login
+function tratarErroSupabase(erro) {
+    console.error('Erro do Supabase:', erro);
+    if (erro && (erro.status === 401 || /jwt/i.test(erro.message || ''))) {
+        supabaseClient.auth.signOut();
+        limparSessao();
+        mostrarTelaAuth();
+    }
+}
+
 async function carregarTransacoes() {
     try {
-        const resposta = await authFetch(`${API_URL}/transacoes?hoje=${hojeISO()}`);
-        if (!resposta.ok) return; // 401: o authFetch já voltou para a tela de login
-        todasTransacoes = await resposta.json();
+        // Receita de valor NÃO fixo é excluída automaticamente no mês seguinte ao mês escolhido
+        const primeiroDiaDoMes = hojeISO().slice(0, 7) + '-01';
+        const limpeza = await supabaseClient.from('transacoes').delete()
+            .eq('tipo', 'receita')
+            .eq('valor_fixo', false)
+            .lt('data', primeiroDiaDoMes);
+        if (limpeza.error) console.error('Erro na limpeza automática:', limpeza.error);
+
+        // O RLS do Supabase já devolve só as linhas do usuário logado
+        const { data, error } = await supabaseClient
+            .from('transacoes')
+            .select('*')
+            .order('data', { ascending: false });
+        if (error) { tratarErroSupabase(error); return; }
+
+        // O banco chama a coluna de "futuro"; o restante do app usa "flag_futuro"
+        todasTransacoes = (data || []).map(t => ({
+            ...t,
+            data: (t.data || '').slice(0, 10),
+            flag_futuro: t.futuro
+        }));
         
         atualizarCardsResumo(todasTransacoes);
         renderizarLista(todasTransacoes);
@@ -103,22 +129,25 @@ function alternarBotoesExcluir(exibir) {
 // ==========================================
 async function salvarTransacao(dados) {
     try {
-        const url = idEdicao ? `${API_URL}/transacoes/${idEdicao}` : `${API_URL}/transacoes`;
-        const metodo = idEdicao ? 'PUT' : 'POST';
+        const { flag_futuro, ...resto } = dados;
+        const registro = { ...resto, futuro: !!flag_futuro }; // coluna do banco: "futuro"
 
-        const resposta = await authFetch(url, {
-            method: metodo,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        });
-
-        if (resposta.ok) {
-            idEdicao = null;
-            carregarTransacoes(); 
-        } else if (resposta.status !== 401) {
-            const detalhe = await resposta.json().catch(() => ({}));
-            alert(detalhe.erro || 'Não foi possível salvar. Tente novamente.');
+        let resposta;
+        if (idEdicao) {
+            resposta = await supabaseClient.from('transacoes').update(registro).eq('id', idEdicao);
+        } else {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            resposta = await supabaseClient.from('transacoes').insert({ ...registro, user_id: session.user.id });
         }
+
+        if (resposta.error) {
+            tratarErroSupabase(resposta.error);
+            alert('Não foi possível salvar. Tente novamente.');
+            return;
+        }
+
+        idEdicao = null;
+        carregarTransacoes();
     } catch (erro) {
         console.error("Erro ao salvar:", erro);
     }
@@ -134,19 +163,18 @@ async function excluirTransacaoAtual() {
     if (!confirmar) return;
 
     try {
-        const resposta = await authFetch(`${API_URL}/transacoes/${idEdicao}`, {
-            method: 'DELETE'
-        });
+        const { error } = await supabaseClient.from('transacoes').delete().eq('id', idEdicao);
 
-        if (resposta.ok) {
-            idEdicao = null;
-            fecharModal('modal-receita');
-            fecharModal('modal-despesa-fixa');
-            fecharModal('modal-despesa-variavel');
-            carregarTransacoes();
-        } else {
-            console.error("Erro ao excluir no servidor.");
+        if (error) {
+            tratarErroSupabase(error);
+            return;
         }
+
+        idEdicao = null;
+        fecharModal('modal-receita');
+        fecharModal('modal-despesa-fixa');
+        fecharModal('modal-despesa-variavel');
+        carregarTransacoes();
     } catch (erro) {
         console.error("Erro ao tentar excluir:", erro);
     }
@@ -186,10 +214,10 @@ function mesDeReferencia() {
 // FUNÇÃO DE ABRIR EDIÇÃO
 // ==========================================
 function abrirEdicao(id) {
-    const t = todasTransacoes.find(item => item.id === id);
+    const t = todasTransacoes.find(item => String(item.id) === String(id));
     if (!t) return;
 
-    idEdicao = id;
+    idEdicao = t.id;
     anoMesEdicao = (t.data || '').slice(0, 7) || anoMesAtual();
 
     // Mostra os botões de excluir pois estamos em modo de edição
@@ -514,7 +542,7 @@ function renderizarLista(transacoes) {
                 <span style="font-weight: 600; color: ${corValor}; font-size: 15px;">
                     ${sinal} ${formatarMoeda(t.valor)}
                 </span>
-                <button onclick="abrirEdicao(${t.id})" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; padding: 4px;" title="Editar">
+                <button onclick="abrirEdicao('${t.id}')" style="background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; padding: 4px;" title="Editar">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>

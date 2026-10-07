@@ -1,35 +1,34 @@
 // ==========================================
-// AUTENTICAÇÃO (conta do usuário)
+// SUPABASE: cliente + autenticação
 // ==========================================
-// Este arquivo precisa ser carregado ANTES do api.js (usa a constante API_URL em tempo de execução).
-const CHAVE_TOKEN = 'tokenAuth';
-const CHAVE_EMAIL = 'emailUsuario';
+// O CDN do Supabase precisa ser carregado ANTES deste arquivo e deste arquivo antes do api.js.
+// "supabase" já é o nome global criado pelo CDN, por isso o cliente se chama "supabaseClient".
+const SUPABASE_URL = 'https://izcjyiwbpcdlyjwcsodh.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_26cSIpbZxYd5wZP_K_UXLA_-egFZOM-'; // chave pública: a proteção real são as políticas RLS
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function getToken() {
-    try { return localStorage.getItem(CHAVE_TOKEN); } catch (e) { return null; }
-}
-
-// Apaga tudo que é da conta (mantém só a preferência de tema)
+// Apaga o que é da conta neste aparelho (a sessão em si é apagada pelo signOut)
 function limparSessao() {
-    try {
-        localStorage.removeItem(CHAVE_TOKEN);
-        localStorage.removeItem(CHAVE_EMAIL);
-        localStorage.removeItem('porcentagemInvestimento');
-    } catch (e) {}
+    try { localStorage.removeItem('porcentagemInvestimento'); } catch (e) {}
 }
 
-// fetch que já envia o token. Se o servidor disser que a sessão não vale mais, volta para o login.
-async function authFetch(url, opcoes = {}) {
-    const headers = { ...(opcoes.headers || {}) };
-    const token = getToken();
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const resposta = await fetch(url, { ...opcoes, headers });
-    if (resposta.status === 401) {
+// Se o login expirar, o Supabase avisa por aqui
+supabaseClient.auth.onAuthStateChange((evento) => {
+    if (evento === 'SIGNED_OUT') {
         limparSessao();
         mostrarTelaAuth();
     }
-    return resposta;
+});
+
+function traduzirErroAuth(erro) {
+    const msg = ((erro && erro.message) || '').toLowerCase();
+    if (msg.includes('invalid login credentials')) return 'E-mail ou senha incorretos.';
+    if (msg.includes('already registered')) return 'Este e-mail já está cadastrado.';
+    if (msg.includes('not confirmed')) return 'Confirme seu e-mail (veja a caixa de entrada) antes de entrar.';
+    if (msg.includes('password should be')) return 'A senha precisa ter pelo menos 6 caracteres.';
+    if (msg.includes('rate limit') || msg.includes('too many')) return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
+    if (msg.includes('email') && msg.includes('invalid')) return 'Informe um e-mail válido.';
+    return 'Não foi possível concluir. Tente novamente.';
 }
 
 // ------------------------------------------
@@ -78,6 +77,7 @@ async function enviarAuth(evento) {
     const textoOriginal = botao.textContent;
 
     elErro.textContent = '';
+    elErro.style.color = '';
 
     if (modoAuth === 'registro' && senha !== senha2) {
         elErro.textContent = 'As senhas não são iguais.';
@@ -88,32 +88,36 @@ async function enviarAuth(evento) {
     botao.textContent = 'Aguarde...';
 
     try {
-        const rota = modoAuth === 'registro' ? 'registro' : 'login';
-        const resposta = await fetch(`${API_URL}/${rota}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, senha })
-        });
-        const dados = await resposta.json().catch(() => ({}));
+        const credenciais = { email, password: senha };
+        const { data, error } = modoAuth === 'registro'
+            ? await supabaseClient.auth.signUp(credenciais)
+            : await supabaseClient.auth.signInWithPassword(credenciais);
 
-        if (!resposta.ok) {
-            elErro.textContent = dados.erro || 'Não foi possível entrar. Tente novamente.';
+        if (error) {
+            elErro.textContent = traduzirErroAuth(error);
+            return;
+        }
+
+        // Cadastro com "Confirm email" ligado no Supabase: ainda não há sessão até confirmar
+        if (!data.session) {
+            definirModoAuth('login');
+            elErro.style.color = 'var(--color-green)';
+            elErro.textContent = 'Conta criada! Confirme o e-mail que enviamos e depois entre.';
             return;
         }
 
         limparSessao(); // descarta qualquer resto de outra conta usada neste aparelho
-        localStorage.setItem(CHAVE_TOKEN, dados.token);
-        localStorage.setItem(CHAVE_EMAIL, dados.email);
         location.reload(); // recarrega já logado, com o estado limpo
     } catch (erro) {
-        elErro.textContent = 'Sem conexão com o servidor. No primeiro acesso ele pode levar até 1 minuto para acordar; tente de novo.';
+        elErro.textContent = 'Sem conexão. Verifique sua internet e tente novamente.';
     } finally {
         botao.disabled = false;
         botao.textContent = textoOriginal;
     }
 }
 
-function fazerLogout() {
+async function fazerLogout() {
+    await supabaseClient.auth.signOut();
     limparSessao();
     location.reload();
 }
@@ -132,47 +136,36 @@ const btnSair = document.getElementById('btn-sair');
 if (btnSair) btnSair.addEventListener('click', fazerLogout);
 
 // ------------------------------------------
-// Dados da conta (% de investimento fica salva na conta, não no aparelho)
+// Dados da conta (a % de investimento fica nos metadados do usuário no Supabase)
 // ------------------------------------------
 async function salvarPorcentagemNoServidor(porcentagem) {
-    try {
-        await authFetch(`${API_URL}/perfil`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ porcentagem_investimento: Number(porcentagem) || 0 })
-        });
-    } catch (erro) {
-        console.error('Erro ao salvar porcentagem:', erro);
-    }
+    const { error } = await supabaseClient.auth.updateUser({
+        data: { porcentagem_investimento: Number(porcentagem) || 0 }
+    });
+    if (error) console.error('Erro ao salvar porcentagem:', error);
 }
 
 // Ponto de partida do app: só carrega os dados se houver uma conta logada
 async function iniciarSessao() {
-    if (!getToken()) {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) {
         mostrarTelaAuth();
         return;
     }
 
     esconderTelaAuth();
 
+    // getUser consulta o servidor: traz a % de investimento mais recente (inclusive de outro aparelho)
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const usuario = user || session.user;
+
     const areaUsuario = document.getElementById('user-area');
     const elEmail = document.getElementById('usuario-email');
-    let emailSalvo = null;
-    try { emailSalvo = localStorage.getItem(CHAVE_EMAIL); } catch (e) {}
     if (areaUsuario) areaUsuario.style.display = 'flex';
-    if (elEmail && emailSalvo) elEmail.textContent = emailSalvo;
+    if (elEmail) elEmail.textContent = usuario.email;
 
-    try {
-        const resposta = await authFetch(`${API_URL}/perfil`);
-        if (!resposta.ok) return; // 401 já voltou para o login
-
-        const perfil = await resposta.json();
-        if (elEmail) elEmail.textContent = perfil.email;
-        porcentagemInvestimento = parseFloat(perfil.porcentagem_investimento) || 0;
-        try { localStorage.setItem('porcentagemInvestimento', porcentagemInvestimento); } catch (e) {}
-    } catch (erro) {
-        console.error('Erro ao carregar perfil:', erro);
-    }
+    porcentagemInvestimento = parseFloat((usuario.user_metadata || {}).porcentagem_investimento) || 0;
+    try { localStorage.setItem('porcentagemInvestimento', porcentagemInvestimento); } catch (e) {}
 
     carregarTransacoes();
 }
