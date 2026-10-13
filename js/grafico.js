@@ -1,6 +1,8 @@
 let meuGraficoInstancia = null;
 let transacoesGlobais = []; // Guarda os dados para usarmos ao trocar de aba
 
+const TEXTO_SOBRE_GRAFICO = "Este gráfico mostra apenas os valores de despesas e investimentos e a porcentagem em relação à receita total, sendo possível ver os valores de receita apenas na tabela. Para ver os valores de receita no gráfico, abra a aba 'Receita'.";
+
 // Escuta o evento criado no api.js que avisa: "Os dados chegaram!"
 window.addEventListener('dadosCarregados', (event) => {
     transacoesGlobais = event.detail || [];
@@ -22,12 +24,47 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
+// Botão "Sobre" do gráfico (visível apenas na aba Geral)
+const btnSobreGrafico = document.getElementById('btn-sobre-grafico');
+if (btnSobreGrafico) {
+    btnSobreGrafico.addEventListener('click', () => {
+        alert(TEXTO_SOBRE_GRAFICO);
+    });
+}
+
+// Receita total (mesma regra do card "Receita"): soma todas as receitas, ignorando recebimentos futuros
+function calcularReceitaTotal() {
+    return (transacoesGlobais || []).reduce((soma, t) => {
+        if (t.tipo !== 'receita') return soma;
+        if (typeof receitaPendente === 'function' && receitaPendente(t)) return soma;
+        return soma + (Number(t.valor) || 0);
+    }, 0);
+}
+
+// Porcentagem da fatia em relação à RECEITA TOTAL: (valor_da_fatia / total_de_receitas) * 100
+function calcularPorcentagemFatia(valorFatia, totalReceitas) {
+    if (!(totalReceitas > 0)) return null; // sem receita não há porcentagem que faça sentido
+    return ((Number(valorFatia) || 0) / totalReceitas) * 100;
+}
+
+function formatarPorcentagem(pct) {
+    return pct.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+}
+
 function atualizarGrafico() {
     const canvas = document.getElementById('meuGrafico');
     const chartEmpty = document.getElementById('chart-empty');
     
     // Se os elementos não existirem na tela, evita erros no console
     if (!canvas || !chartEmpty) return;
+
+    // Descobre qual aba está aberta no momento
+    const abaAtivaObj = document.querySelector('.tab-btn.active');
+    const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'geral';
+
+    // Botão "Sobre" aparece apenas na aba Geral
+    const btnSobre = document.getElementById('btn-sobre-grafico');
+    if (btnSobre) btnSobre.style.display = abaAtiva === 'geral' ? 'inline-flex' : 'none';
 
     // Se ainda não carregou os dados
     if (!transacoesGlobais || transacoesGlobais.length === 0) {
@@ -36,16 +73,15 @@ function atualizarGrafico() {
         return;
     }
 
-    // Descobre qual aba está aberta no momento
-    const abaAtivaObj = document.querySelector('.tab-btn.active');
-    const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'geral';
+    // Base de cálculo das porcentagens exibidas na legenda
+    const totalReceitas = calcularReceitaTotal();
 
     let labels = [];
     let dados = [];
     let cores = [];
 
     if (abaAtiva === 'geral') {
-        let totalReceitas = 0;
+        let receitasFiltradas = 0;
         let totalDespesasFixas = 0;
         let totalDespesasVariaveis = 0;
 
@@ -56,7 +92,7 @@ function atualizarGrafico() {
             if (t.tipo === 'receita') {
                 // "Recebimento futuro" só conta quando o dia e o mês chegam
                 if (typeof receitaPendente === 'function' && receitaPendente(t)) return;
-                totalReceitas += Number(t.valor) || 0;
+                receitasFiltradas += Number(t.valor) || 0;
             } else if (t.tipo === 'despesa-fixa') {
                 totalDespesasFixas += Number(t.valor) || 0;
             } else if (t.tipo === 'despesa-variavel') {
@@ -68,10 +104,10 @@ function atualizarGrafico() {
             ? porcentagemInvestimento 
             : (parseFloat(localStorage.getItem('porcentagemInvestimento')) || 0);
 
-        const valorInvestimento = totalReceitas * (percInvest / 100);
+        // O investimento continua sendo calculado a partir da receita, mas a receita não aparece no gráfico
+        const valorInvestimento = receitasFiltradas * (percInvest / 100);
 
         const metricas = [
-            { label: 'Receita', valor: totalReceitas, cor: '#10b981' },             // Verde
             { label: 'Investimentos', valor: valorInvestimento, cor: '#3b82f6' },     // Azul
             { label: 'Despesas Fixas', valor: totalDespesasFixas, cor: '#ef4444' },   // Vermelho
             { label: 'Despesas Variáveis', valor: totalDespesasVariaveis, cor: '#f97316' } // Laranja
@@ -183,24 +219,25 @@ function atualizarGrafico() {
                         usePointStyle: true,
                         padding: 20,
                         color: corTexto,
-                        font: { family: "'Inter', sans-serif", size: 12 }
+                        font: { family: "'Inter', sans-serif", size: 12 },
+                        // Legenda: "Despesas Fixas (35,0%)" — % em relação à receita total
+                        generateLabels: (chart) => {
+                            const padrao = Chart.overrides.doughnut.plugins.legend.labels.generateLabels(chart);
+                            const valores = chart.data.datasets[0].data;
+                            return padrao.map((item) => {
+                                const pct = calcularPorcentagemFatia(valores[item.index], totalReceitas);
+                                if (pct === null) return item; // sem receita: mostra só o nome
+                                return { ...item, text: `${item.text} (${formatarPorcentagem(pct)})` };
+                            });
+                        }
                     }
                 },
                 tooltip: {
                     callbacks: {
-                        // Linha 1: nome da fatia (categoria / descrição)
-                        title: (itens) => itens[0].label,
-                        // Linha 2: valor e porcentagem em relação ao saldo total (card Saldo)
-                        label: (item) => {
-                            const valor = Number(item.parsed) || 0;
-                            const saldo = typeof obterResumo === 'function' ? obterResumo().saldo : 0;
-                            const moeda = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                            if (!(saldo > 0)) return moeda; // sem saldo positivo não há porcentagem que faça sentido
-                            const pct = ((valor / saldo) * 100).toLocaleString('pt-BR', {
-                                minimumFractionDigits: 1, maximumFractionDigits: 1
-                            });
-                            return `${moeda} (${pct}%)`;
-                        }
+                        // Tooltip: apenas o valor monetário, ex. "R$ 2.000,00"
+                        title: () => '',
+                        label: (item) => (Number(item.parsed) || 0)
+                            .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
                     }
                 }
             }
