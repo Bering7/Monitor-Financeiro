@@ -24,13 +24,28 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// Botão "Sobre" do gráfico (visível apenas na aba Geral)
-const btnSobreGrafico = document.getElementById('btn-sobre-grafico');
-if (btnSobreGrafico) {
-    btnSobreGrafico.addEventListener('click', () => {
+// Nomes exibidos de cada aba (usados no texto do botão "Sobre")
+const NOMES_ABAS = {
+    'receita': 'Receita',
+    'despesa-fixa': 'Despesas Fixas',
+    'despesa-variavel': 'Despesas Variáveis'
+};
+
+// Botão "Sobre" do gráfico: Delegação de Eventos (um único listener no document)
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#btn-sobre-grafico')) return;
+
+    const abaObj = document.querySelector('.tab-btn.active');
+    const aba = abaObj ? abaObj.getAttribute('data-tab') : 'geral';
+
+    if (aba === 'geral') {
         alert(TEXTO_SOBRE_GRAFICO);
-    });
-}
+        return;
+    }
+
+    const nomeAba = NOMES_ABAS[aba] || (abaObj ? abaObj.textContent.trim() : aba);
+    alert(`A porcentagem apresentada na legenda deste gráfico representa a porcentagem daquele valor em relação ao valor total de Receita. Já a porcentagem no gráfico representa a porcentagem daquele valor em relação ao valor total de ${nomeAba}.`);
+});
 
 // Receita total (mesma regra do card "Receita"): soma todas as receitas, ignorando recebimentos futuros
 function calcularReceitaTotal() {
@@ -62,9 +77,9 @@ function atualizarGrafico() {
     const abaAtivaObj = document.querySelector('.tab-btn.active');
     const abaAtiva = abaAtivaObj ? abaAtivaObj.getAttribute('data-tab') : 'geral';
 
-    // Botão "Sobre" aparece apenas na aba Geral
+    // Botão "Sobre" visível em todas as abas
     const btnSobre = document.getElementById('btn-sobre-grafico');
-    if (btnSobre) btnSobre.style.display = abaAtiva === 'geral' ? 'inline-flex' : 'none';
+    if (btnSobre) btnSobre.style.display = 'inline-flex';
 
     // Se ainda não carregou os dados
     if (!transacoesGlobais || transacoesGlobais.length === 0) {
@@ -234,10 +249,17 @@ function atualizarGrafico() {
                 },
                 tooltip: {
                     callbacks: {
-                        // Tooltip: apenas o valor monetário, ex. "R$ 2.000,00"
+                        // Tooltip: valor (R$) + % em relação ao TOTAL DA ABA ATUAL (soma das fatias exibidas)
                         title: () => '',
-                        label: (item) => (Number(item.parsed) || 0)
-                            .toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                        label: (item) => {
+                            const valor = Number(item.parsed) || 0;
+                            const valorFmt = valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                            const totalAba = item.dataset.data.reduce((soma, v, i) => {
+                                return item.chart.getDataVisibility(i) ? soma + (Number(v) || 0) : soma;
+                            }, 0);
+                            if (!(totalAba > 0)) return valorFmt;
+                            return `${valorFmt} (${formatarPorcentagem((valor / totalAba) * 100)})`;
+                        }
                     }
                 }
             }
