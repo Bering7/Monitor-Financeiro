@@ -1,5 +1,5 @@
 # Monitor Financeiro
-Acesse: [GitHub Pages](https://bering7.github.io/Monitor-Financeiro)
+Acesse o [Monitor Financeiro](monitor-financeiro.vercel.app)
 
 Aplicação web para acompanhar receitas, despesas e investimentos de forma simples e visual, com resumo em cards, tabela de lançamentos e gráfico.
 
