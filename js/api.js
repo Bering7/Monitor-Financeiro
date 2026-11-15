@@ -459,7 +459,7 @@ function renderizarListaGeral(transacoes) {
         item.style = `${colunas} padding: 14px 0; border-bottom: 1px solid var(--border-color);`;
         item.innerHTML = `
             <span style="font-size: 14px; color: var(--text-muted); font-weight: 500;">${data ? formatarDataBR(data) : '—'}</span>
-            <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(descricao)}${selo}${subcategoria}</span>
+            <span class="nome-transacao" style="color: ${cfg.cor};">${escaparHTML(descricao)}${selo}${subcategoria}</span>
             <span><span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; color: ${cfg.cor}; background-color: color-mix(in srgb, ${cfg.cor} 12%, transparent);">${cfg.rotulo}</span></span>
             <span style="text-align: right; font-weight: 600; color: ${cfg.cor}; font-size: 15px;">${sinalStr}${formatarMoeda(valor)}</span>
         `;
@@ -525,9 +525,20 @@ function renderizarLista(transacoes) {
     transacoesAba.forEach(t => {
         const partesData = t.data ? t.data.split('-') : [];
         const dataFormatada = t.sem_data ? '—' : (partesData.length === 3 ? `${partesData[2]}/${partesData[1]}/${partesData[0]}` : t.data);
-        const isReceita = t.tipo === 'receita';
-        const corValor = isReceita ? 'var(--color-green)' : 'var(--text-main)';
-        const sinal = isReceita ? '+' : '-';
+        
+        let corValor = 'var(--text-main)';
+        let sinal = '-';
+
+        if (t.tipo === 'receita') {
+            corValor = 'var(--color-green)';
+            sinal = '+';
+        } else if (t.tipo === 'despesa-fixa') {
+            corValor = 'var(--color-red)';
+            sinal = '-';
+        } else if (t.tipo === 'despesa-variavel') {
+            corValor = '#f97316'; // Laranja usado para despesas variáveis
+            sinal = '-';
+        }
 
         const item = document.createElement('div');
         item.style = "display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border-color); align-items: center;";
@@ -535,7 +546,7 @@ function renderizarLista(transacoes) {
         item.innerHTML = `
             <div style="display: flex; align-items: center; gap: 24px;">
                 <span style="font-size: 14px; color: var(--text-muted); min-width: 90px; font-weight: 500;">${dataFormatada}</span>
-                <span style="font-weight: 600; font-size: 14px; color: var(--text-main);">${escaparHTML(t.descricao)}${seloFuturo(t)}</span>
+                <span class="nome-transacao">${escaparHTML(t.descricao)}${seloFuturo(t)}</span>
             </div>
 
             <div style="display: flex; align-items: center; gap: 12px;">

@@ -782,3 +782,8 @@ body {
     .modal-form select { font-size: 16px; }
     .modal-overlay { padding: 16px; }
 }
+
+.nome-transacoa{
+    font-weight: 600;
+    font-size: 14px;
+}
