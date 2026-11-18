@@ -585,8 +585,14 @@ function renderizarLista(transacoes) {
 // ==========================================
 let transacoesExtratoPreview = [];
 
-// URL base configurável para o backend FastAPI
-let FASTAPI_URL = localStorage.getItem('fastapi_url') || 'http://127.0.0.1:8000';
+// URL base para o backend FastAPI no Render
+const FASTAPI_PROD_URL = 'https://monitor-financeiro-api.onrender.com';
+let FASTAPI_URL = localStorage.getItem('fastapi_url');
+// Se o valor salvo for vazio ou o antigo localhost, migra para a URL de produção no Render
+if (!FASTAPI_URL || FASTAPI_URL.includes('localhost') || FASTAPI_URL.includes('127.0.0.1')) {
+    FASTAPI_URL = FASTAPI_PROD_URL;
+    try { localStorage.setItem('fastapi_url', FASTAPI_PROD_URL); } catch (e) {}
+}
 
 async function enviarExtratoFastAPI(file) {
     if (!file) return;
@@ -601,7 +607,7 @@ async function enviarExtratoFastAPI(file) {
             <div class="spinner"></div>
             <div>
                 <strong>Enviando ${escaparHTML(file.name)}...</strong>
-                <div>Aguarde enquanto o FastAPI processa e categoriza os lançamentos.</div>
+                <div>Aguarde enquanto a API processa e categoriza os lançamentos. (Se o servidor estiver iniciando no Render, pode levar alguns segundos).</div>
             </div>
         `;
     }
@@ -619,6 +625,9 @@ async function enviarExtratoFastAPI(file) {
         const headers = {};
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
+        }
+        if (userId) {
+            headers['X-User-Id'] = userId;
         }
 
         // Endpoint FastAPI para processar extrato
@@ -661,6 +670,7 @@ async function enviarExtratoFastAPI(file) {
             if (typeof val === 'string') {
                 val = lerValorCampo(val);
             }
+            const ehNegativo = Number(val) < 0;
             val = Math.abs(Number(val) || 0);
 
             let dt = String(item.data || item.date || item.dt || hojeISO());
@@ -673,13 +683,19 @@ async function enviarExtratoFastAPI(file) {
                 dt = dt.slice(0, 10);
             }
 
+            // Identifica se é receita ou despesa a partir do retorno da API
+            const tipoApi = String(item.tipo || '').toLowerCase();
+            const ehReceita = tipoApi.includes('receita') || (!tipoApi && !ehNegativo && Number(item.valor) > 0);
+            const tipoNormalizado = ehReceita ? 'receita' : 'despesa-variavel';
+
             return {
-                id_temp: index,
+                id_temp: item.id_temp || index,
                 data: dt,
-                descricao: item.descricao || item.description || item.historico || 'Gasto importado',
+                descricao: item.descricao || item.description || item.historico || 'Lançamento importado',
                 valor: val,
                 categoria: item.categoria || item.category || 'Outros',
-                tipo: item.tipo || 'despesa-variavel',
+                tipo: tipoNormalizado,
+                ehReceita: ehReceita,
                 selecionado: true
             };
         });
@@ -752,8 +768,8 @@ function renderizarPreviewExtrato() {
             <td>
                 <input type="text" class="input-preview-desc" data-id="${t.id_temp}" value="${escaparHTML(t.descricao)}">
             </td>
-            <td style="font-weight: 700; color: var(--color-red); font-size: 14px; white-space: nowrap;">
-                - ${formatarMoeda(t.valor)}
+            <td style="font-weight: 700; color: ${t.ehReceita ? 'var(--color-green)' : 'var(--color-red)'}; font-size: 14px; white-space: nowrap;">
+                ${t.ehReceita ? '+' : '-'} ${formatarMoeda(t.valor)}
             </td>
             <td>
                 <input type="text" class="input-preview-cat" data-id="${t.id_temp}" value="${escaparHTML(t.categoria)}" placeholder="Categoria">
@@ -859,10 +875,10 @@ if (btnSalvarPreview) {
 
             const registros = selecionadas.map(t => ({
                 user_id: session.user.id,
-                tipo: 'despesa-variavel', // Gastos importados entram como despesas variáveis
+                tipo: t.tipo || (t.ehReceita ? 'receita' : 'despesa-variavel'),
                 data: t.data || hojeISO(),
                 valor: Math.abs(Number(t.valor)) || 0,
-                descricao: (t.descricao || 'Gasto importado').trim(),
+                descricao: (t.descricao || 'Lançamento importado').trim(),
                 categoria: (t.categoria || 'Outros').trim(),
                 futuro: false,
                 sem_data: !t.data,
