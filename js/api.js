@@ -489,6 +489,7 @@ function renderizarListaGeral(transacoes) {
 // ==========================================
 function renderizarLista(transacoes) {
     const listContainer = document.getElementById('list-container');
+    const gastosView = document.getElementById('gastos-view');
     if (!listContainer) return;
 
     const abaAtivaObj = document.querySelector('.tab-btn.active');
@@ -496,7 +497,21 @@ function renderizarLista(transacoes) {
     
     const btnAdicionar = document.getElementById('btn-adicionar');
     if (btnAdicionar) {
-        btnAdicionar.style.display = (abaAtiva === 'geral') ? 'none' : 'flex';
+        btnAdicionar.style.display = (abaAtiva === 'geral' || abaAtiva === 'gastos') ? 'none' : 'flex';
+    }
+
+    const btnFiltro = document.getElementById('btn-filtro');
+    if (btnFiltro) {
+        btnFiltro.style.display = (abaAtiva === 'gastos') ? 'none' : 'flex';
+    }
+
+    if (abaAtiva === 'gastos') {
+        listContainer.style.display = 'none';
+        if (gastosView) gastosView.style.display = 'flex';
+        return;
+    } else {
+        listContainer.style.display = 'block';
+        if (gastosView) gastosView.style.display = 'none';
     }
 
     if (abaAtiva === 'geral') {
@@ -562,6 +577,367 @@ function renderizarLista(transacoes) {
             </div>
         `;
         listContainer.appendChild(item);
+    });
+}
+
+// ==========================================
+// INTEGRAÇÃO COM BACKEND FASTAPI (EXTRATO CSV)
+// ==========================================
+let transacoesExtratoPreview = [];
+
+// URL base configurável para o backend FastAPI
+let FASTAPI_URL = localStorage.getItem('fastapi_url') || 'http://127.0.0.1:8000';
+
+async function enviarExtratoFastAPI(file) {
+    if (!file) return;
+
+    const statusEl = document.getElementById('upload-status');
+    const previewSection = document.getElementById('preview-section');
+
+    if (statusEl) {
+        statusEl.style.display = 'flex';
+        statusEl.className = 'upload-status status-loading';
+        statusEl.innerHTML = `
+            <div class="spinner"></div>
+            <div>
+                <strong>Enviando ${escaparHTML(file.name)}...</strong>
+                <div>Aguarde enquanto o FastAPI processa e categoriza os lançamentos.</div>
+            </div>
+        `;
+    }
+    if (previewSection) previewSection.style.display = 'none';
+
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const userId = session ? session.user.id : '';
+        const token = session ? session.access_token : '';
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (userId) formData.append('user_id', userId);
+
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Endpoint FastAPI para processar extrato
+        const url = `${FASTAPI_URL}/processar-extrato${userId ? `?user_id=${encodeURIComponent(userId)}` : ''}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        if (!response.ok) {
+            let msgErro = `Servidor retornou erro ${response.status}`;
+            try {
+                const errJson = await response.json();
+                msgErro = errJson.detail || errJson.message || msgErro;
+            } catch (e) {}
+            throw new Error(msgErro);
+        }
+
+        const dados = await response.json();
+        let itens = [];
+        if (Array.isArray(dados)) {
+            itens = dados;
+        } else if (dados && typeof dados === 'object') {
+            itens = dados.transacoes || dados.dados || dados.itens || dados.extrato || dados.data || [];
+        }
+
+        if (!itens || itens.length === 0) {
+            if (statusEl) {
+                statusEl.className = 'upload-status status-alerta';
+                statusEl.innerHTML = `<strong>Aviso:</strong> Nenhum lançamento encontrado no arquivo CSV enviado.`;
+            }
+            return;
+        }
+
+        // Normaliza itens retornados pelo FastAPI (Data, Descrição, Valor e Categoria sugerida)
+        transacoesExtratoPreview = itens.map((item, index) => {
+            let val = item.valor ?? item.amount ?? item.value ?? 0;
+            if (typeof val === 'string') {
+                val = lerValorCampo(val);
+            }
+            val = Math.abs(Number(val) || 0);
+
+            let dt = String(item.data || item.date || item.dt || hojeISO());
+            if (dt.includes('/')) {
+                const partes = dt.split('/');
+                if (partes.length === 3) {
+                    dt = `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+                }
+            } else if (dt.length > 10) {
+                dt = dt.slice(0, 10);
+            }
+
+            return {
+                id_temp: index,
+                data: dt,
+                descricao: item.descricao || item.description || item.historico || 'Gasto importado',
+                valor: val,
+                categoria: item.categoria || item.category || 'Outros',
+                tipo: item.tipo || 'despesa-variavel',
+                selecionado: true
+            };
+        });
+
+        if (statusEl) {
+            statusEl.className = 'upload-status status-sucesso';
+            statusEl.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <div>
+                    <strong>Extrato processado com sucesso!</strong>
+                    <div>${transacoesExtratoPreview.length} lançamentos identificados. Revise na tabela abaixo e confirme para salvar.</div>
+                </div>
+            `;
+        }
+
+        renderizarPreviewExtrato();
+
+    } catch (erro) {
+        console.error('Erro na requisição ao FastAPI:', erro);
+        if (statusEl) {
+            statusEl.className = 'upload-status status-erro';
+            statusEl.innerHTML = `
+                <div>
+                    <strong>Erro ao conectar com o backend FastAPI:</strong>
+                    <div>${escaparHTML(erro.message || 'Falha na comunicação com o endpoint /processar-extrato.')}</div>
+                    <small style="opacity: 0.8; margin-top: 4px; display: block;">Endpoint testado: <code>${escaparHTML(FASTAPI_URL)}/processar-extrato</code></small>
+                </div>
+            `;
+        }
+    }
+}
+
+function renderizarPreviewExtrato() {
+    const previewSection = document.getElementById('preview-section');
+    const tbody = document.getElementById('preview-tbody');
+    const countEl = document.getElementById('preview-count');
+    const checkTodos = document.getElementById('check-todos-preview');
+
+    if (!previewSection || !tbody) return;
+
+    if (transacoesExtratoPreview.length === 0) {
+        previewSection.style.display = 'none';
+        return;
+    }
+
+    previewSection.style.display = 'block';
+
+    const selecionadas = transacoesExtratoPreview.filter(t => t.selecionado).length;
+    if (countEl) {
+        countEl.textContent = `${selecionadas} de ${transacoesExtratoPreview.length} selecionadas para salvar`;
+    }
+
+    if (checkTodos) {
+        checkTodos.checked = selecionadas === transacoesExtratoPreview.length;
+        checkTodos.indeterminate = selecionadas > 0 && selecionadas < transacoesExtratoPreview.length;
+    }
+
+    tbody.innerHTML = '';
+    transacoesExtratoPreview.forEach(t => {
+        const tr = document.createElement('tr');
+        if (!t.selecionado) tr.classList.add('linha-desmarcada');
+
+        tr.innerHTML = `
+            <td style="text-align: center;">
+                <input type="checkbox" class="check-item-preview" data-id="${t.id_temp}" ${t.selecionado ? 'checked' : ''}>
+            </td>
+            <td>
+                <input type="date" class="input-preview-data" data-id="${t.id_temp}" value="${t.data}">
+            </td>
+            <td>
+                <input type="text" class="input-preview-desc" data-id="${t.id_temp}" value="${escaparHTML(t.descricao)}">
+            </td>
+            <td style="font-weight: 700; color: var(--color-red); font-size: 14px; white-space: nowrap;">
+                - ${formatarMoeda(t.valor)}
+            </td>
+            <td>
+                <input type="text" class="input-preview-cat" data-id="${t.id_temp}" value="${escaparHTML(t.categoria)}" placeholder="Categoria">
+            </td>
+            <td style="text-align: center;">
+                <button type="button" class="btn-preview-delete" data-id="${t.id_temp}" title="Excluir da importação">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Eventos de alteração dos campos da tabela de prévia
+    tbody.querySelectorAll('.check-item-preview').forEach(chk => {
+        chk.addEventListener('change', (e) => {
+            const id = parseInt(e.target.dataset.id, 10);
+            const item = transacoesExtratoPreview.find(t => t.id_temp === id);
+            if (item) {
+                item.selecionado = e.target.checked;
+                renderizarPreviewExtrato();
+            }
+        });
+    });
+
+    tbody.querySelectorAll('.input-preview-data').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+            const id = parseInt(e.target.dataset.id, 10);
+            const item = transacoesExtratoPreview.find(t => t.id_temp === id);
+            if (item) item.data = e.target.value;
+        });
+    });
+
+    tbody.querySelectorAll('.input-preview-desc').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+            const id = parseInt(e.target.dataset.id, 10);
+            const item = transacoesExtratoPreview.find(t => t.id_temp === id);
+            if (item) item.descricao = e.target.value;
+        });
+    });
+
+    tbody.querySelectorAll('.input-preview-cat').forEach(inp => {
+        inp.addEventListener('input', (e) => {
+            const id = parseInt(e.target.dataset.id, 10);
+            const item = transacoesExtratoPreview.find(t => t.id_temp === id);
+            if (item) item.categoria = e.target.value;
+        });
+    });
+
+    tbody.querySelectorAll('.btn-preview-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = parseInt(e.currentTarget.dataset.id, 10);
+            transacoesExtratoPreview = transacoesExtratoPreview.filter(t => t.id_temp !== id);
+            renderizarPreviewExtrato();
+        });
+    });
+}
+
+// Checkbox "Selecionar todos" na tabela de prévia
+const checkTodosPreview = document.getElementById('check-todos-preview');
+if (checkTodosPreview) {
+    checkTodosPreview.addEventListener('change', (e) => {
+        const marcar = e.target.checked;
+        transacoesExtratoPreview.forEach(t => t.selecionado = marcar);
+        renderizarPreviewExtrato();
+    });
+}
+
+// Botão "Descartar" prévia
+const btnDescartarPreview = document.getElementById('btn-descartar-preview');
+if (btnDescartarPreview) {
+    btnDescartarPreview.addEventListener('click', () => {
+        if (!confirm('Deseja descartar estes lançamentos importados?')) return;
+        transacoesExtratoPreview = [];
+        renderizarPreviewExtrato();
+        const statusEl = document.getElementById('upload-status');
+        const inputCSV = document.getElementById('input-extrato-csv');
+        if (statusEl) statusEl.style.display = 'none';
+        if (inputCSV) inputCSV.value = '';
+    });
+}
+
+// Botão "Salvar no Supabase"
+const btnSalvarPreview = document.getElementById('btn-salvar-preview');
+if (btnSalvarPreview) {
+    btnSalvarPreview.addEventListener('click', async () => {
+        const selecionadas = transacoesExtratoPreview.filter(t => t.selecionado);
+        if (selecionadas.length === 0) {
+            alert('Selecione pelo menos uma transação para salvar.');
+            return;
+        }
+
+        const textoOriginal = btnSalvarPreview.innerHTML;
+        btnSalvarPreview.disabled = true;
+        btnSalvarPreview.innerHTML = 'Salvando no banco...';
+
+        try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                alert('Você precisa estar logado para salvar.');
+                return;
+            }
+
+            const registros = selecionadas.map(t => ({
+                user_id: session.user.id,
+                tipo: 'despesa-variavel', // Gastos importados entram como despesas variáveis
+                data: t.data || hojeISO(),
+                valor: Math.abs(Number(t.valor)) || 0,
+                descricao: (t.descricao || 'Gasto importado').trim(),
+                categoria: (t.categoria || 'Outros').trim(),
+                futuro: false,
+                sem_data: !t.data,
+                valor_fixo: false
+            }));
+
+            const { error } = await supabaseClient.from('transacoes').insert(registros);
+            if (error) {
+                tratarErroSupabase(error);
+                alert('Erro ao salvar as transações no Supabase: ' + (error.message || ''));
+                return;
+            }
+
+            alert(`${registros.length} transações salvas com sucesso no Supabase!`);
+            transacoesExtratoPreview = [];
+            renderizarPreviewExtrato();
+
+            const statusEl = document.getElementById('upload-status');
+            const inputCSV = document.getElementById('input-extrato-csv');
+            if (statusEl) statusEl.style.display = 'none';
+            if (inputCSV) inputCSV.value = '';
+
+            // Recarrega lançamentos atualizados do Supabase
+            await carregarTransacoes();
+
+        } catch (erro) {
+            console.error('Erro ao salvar lançamentos:', erro);
+            alert('Não foi possível salvar os lançamentos.');
+        } finally {
+            btnSalvarPreview.disabled = false;
+            btnSalvarPreview.innerHTML = textoOriginal;
+        }
+    });
+}
+
+// Evento de seleção de arquivo via <input type="file">
+const inputExtratoCSV = document.getElementById('input-extrato-csv');
+if (inputExtratoCSV) {
+    inputExtratoCSV.addEventListener('change', (e) => {
+        const arquivo = e.target.files && e.target.files[0];
+        if (arquivo) {
+            enviarExtratoFastAPI(arquivo);
+        }
+    });
+}
+
+// Suporte a Arrastar e Soltar (Drag & Drop) na área de upload
+const uploadDropzone = document.getElementById('upload-dropzone');
+if (uploadDropzone) {
+    ['dragenter', 'dragover'].forEach(evt => {
+        uploadDropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadDropzone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+        uploadDropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadDropzone.classList.remove('dragover');
+        });
+    });
+
+    uploadDropzone.addEventListener('drop', (e) => {
+        const arquivos = e.dataTransfer && e.dataTransfer.files;
+        if (arquivos && arquivos.length > 0) {
+            const arquivo = arquivos[0];
+            if (arquivo.name.toLowerCase().endsWith('.csv')) {
+                enviarExtratoFastAPI(arquivo);
+            } else {
+                alert('Por favor, selecione um arquivo no formato .CSV.');
+            }
+        }
     });
 }
 

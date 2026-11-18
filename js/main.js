@@ -12,18 +12,36 @@ tabBtns.forEach(btn => {
         // 2. Adiciona a classe 'active' apenas no botão clicado
         btn.classList.add('active');
         
-        // 3. Muda o título da lista dinamicamente e controla botão Adicionar
+        // 3. Muda o título da lista dinamicamente e controla botões de ação e visualização
         const aba = btn.getAttribute('data-tab');
         if (tituloAba) {
             if (aba === 'geral') tituloAba.textContent = 'Visão Geral';
             if (aba === 'receita') tituloAba.textContent = 'Receitas';
             if (aba === 'despesa-fixa') tituloAba.textContent = 'Despesas Fixas';
             if (aba === 'despesa-variavel') tituloAba.textContent = 'Despesas Variáveis';
+            if (aba === 'gastos') tituloAba.textContent = 'Gastos / Importar Extrato';
         }
 
         const btnAdicionar = document.getElementById('btn-adicionar');
         if (btnAdicionar) {
-            btnAdicionar.style.display = (aba === 'geral') ? 'none' : 'flex';
+            btnAdicionar.style.display = (aba === 'geral' || aba === 'gastos') ? 'none' : 'flex';
+        }
+
+        const btnFiltro = document.getElementById('btn-filtro');
+        if (btnFiltro) {
+            btnFiltro.style.display = (aba === 'gastos') ? 'none' : 'flex';
+        }
+
+        const listContainer = document.getElementById('list-container');
+        const gastosView = document.getElementById('gastos-view');
+        if (listContainer && gastosView) {
+            if (aba === 'gastos') {
+                listContainer.style.display = 'none';
+                gastosView.style.display = 'flex';
+            } else {
+                listContainer.style.display = 'block';
+                gastosView.style.display = 'none';
+            }
         }
 
         // 4. CORREÇÃO: Força a lista a redesenhar imediatamente ao mudar de aba
@@ -69,7 +87,9 @@ if (btnAdicionar) {
         const abaAtivaObj = document.querySelector('.tab-btn.active');
         if (abaAtivaObj) {
             const abaAtiva = abaAtivaObj.getAttribute('data-tab');
-            abrirModal(`modal-${abaAtiva}`);
+            if (abaAtiva !== 'geral' && abaAtiva !== 'gastos') {
+                abrirModal(`modal-${abaAtiva}`);
+            }
         }
     });
 }
