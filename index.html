@@ -215,6 +215,24 @@
                         </button>
                     </div>
 
+                    <!-- Barra de Filtros e Ordenação de Metas -->
+                    <div class="metas-toolbar">
+                        <div class="metas-filtros">
+                            <button type="button" class="btn-chip active" data-filtro="todas">Todas</button>
+                            <button type="button" class="btn-chip" data-filtro="ativas">Em andamento</button>
+                            <button type="button" class="btn-chip" data-filtro="concluidas">Concluídas</button>
+                        </div>
+                        <div class="metas-ordenacao">
+                            <label for="metas-ordem">Ordenar:</label>
+                            <select id="metas-ordem" class="select-ordem">
+                                <option value="prazo">Prazo mais próximo</option>
+                                <option value="progresso_desc">Maior progresso</option>
+                                <option value="progresso_asc">Menor progresso</option>
+                                <option value="valor_alvo">Maior valor alvo</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div class="metas-grid" id="metas-lista">
                         <!-- Cards gerados via JS -->
                     </div>
@@ -515,11 +533,11 @@
         </div>
     </div>
 
-    <!-- Modal: Nova Meta -->
+    <!-- Modal: Nova / Editar Meta -->
     <div class="modal-overlay" id="modal-nova-meta">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Nova Meta</h2>
+                <h2 id="modal-meta-titulo">Nova Meta</h2>
                 <button type="button" class="btn-close" onclick="fecharModal('modal-nova-meta')">×</button>
             </div>
             <p class="modal-subtitle">Defina o objetivo, valor alvo e planejamento mensal.</p>
@@ -530,18 +548,37 @@
                 <label for="meta-valor-alvo">Valor alvo total</label>
                 <input type="text" id="meta-valor-alvo" placeholder="R$ 0,00" required>
 
-                <label for="meta-mes-alvo">Mês alvo (prazo final)</label>
-                <input type="month" id="meta-mes-alvo" required>
+                <label>Data esperada de término (mês / ano)</label>
+                <div class="form-linha-dupla">
+                    <select id="meta-mes-select" required title="Selecione o mês alvo"></select>
+                    <select id="meta-ano-select" required title="Selecione o ano alvo"></select>
+                </div>
+
+                <!-- Box de recomendação ao vivo -->
+                <div class="meta-sugestao-box" id="meta-sugestao-box" style="display: none;">
+                    <div class="sugestao-info">
+                        <span class="sugestao-label">Aporte mínimo sugerido no prazo:</span>
+                        <div style="display: flex; align-items: baseline; gap: 6px;">
+                            <span class="sugestao-valor" id="meta-sugestao-valor">R$ 0,00/mês</span>
+                            <span class="sugestao-sub" id="meta-sugestao-meses">(em 0 meses)</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-sugestao-aplicar" id="btn-aplicar-sugestao" title="Copiar sugestão para o campo abaixo">
+                        Aplicar
+                    </button>
+                </div>
 
                 <label for="meta-aporte-parametro">Aporte parâmetro (referência mensal flexível)</label>
                 <input type="text" id="meta-aporte-parametro" placeholder="R$ 0,00" required>
 
-                <label for="meta-aporte-inicial">Valor guardado neste mês (opcional)</label>
-                <input type="text" id="meta-aporte-inicial" placeholder="R$ 0,00">
+                <div class="form-grupo" id="grupo-aporte-inicial">
+                    <label for="meta-aporte-inicial">Valor já guardado neste mês (opcional)</label>
+                    <input type="text" id="meta-aporte-inicial" placeholder="R$ 0,00">
+                </div>
 
                 <div class="modal-actions">
                     <button type="button" class="btn-outline" onclick="fecharModal('modal-nova-meta')">Cancelar</button>
-                    <button type="submit" class="btn-primary">Criar Meta</button>
+                    <button type="submit" class="btn-primary" id="btn-submit-meta">Criar Meta</button>
                 </div>
             </form>
         </div>
@@ -558,8 +595,11 @@
             <form id="form-aporte-meta" class="modal-form">
                 <input type="hidden" id="aporte-meta-id">
 
-                <label for="aporte-mes">Mês de referência</label>
-                <input type="month" id="aporte-mes" required>
+                <label>Mês de referência (mês / ano)</label>
+                <div class="form-linha-dupla">
+                    <select id="aporte-mes-select" required title="Selecione o mês do aporte"></select>
+                    <select id="aporte-ano-select" required title="Selecione o ano do aporte"></select>
+                </div>
 
                 <label for="aporte-valor">Valor guardado no mês</label>
                 <input type="text" id="aporte-valor" placeholder="R$ 0,00" required>

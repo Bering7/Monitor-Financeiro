@@ -1642,3 +1642,217 @@ body {
     gap: 12px;
     margin-top: 2px;
 }
+
+/* Linha dupla de formulário (Mês + Ano consistentes) */
+.form-linha-dupla {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 10px;
+}
+
+/* Toolbar de Filtros e Ordenação */
+.metas-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.metas-filtros {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-chip {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-chip:hover,
+.btn-chip.active {
+    background-color: var(--text-main);
+    color: var(--card-bg);
+    border-color: var(--text-main);
+}
+
+.metas-ordenacao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.select-ordem {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Box de Recomendação / Sugestão ao vivo */
+.meta-sugestao-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: color-mix(in srgb, var(--color-blue) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-blue) 30%, transparent);
+    padding: 10px 14px;
+    border-radius: 12px;
+    gap: 10px;
+}
+
+.sugestao-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sugestao-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.sugestao-valor {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-blue);
+}
+
+.sugestao-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.btn-sugestao-aplicar {
+    background-color: var(--color-blue);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity 0.2s;
+}
+
+.btn-sugestao-aplicar:hover {
+    opacity: 0.9;
+}
+
+/* Alertas de Prazo e Ritmo no Card da Meta */
+.meta-alerta-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    gap: 12px;
+}
+
+.alerta-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    line-height: 1.35;
+}
+
+.meta-alerta-box.alerta-perigo {
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: var(--color-red);
+}
+
+.meta-alerta-box.alerta-aviso {
+    background-color: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    color: #d97706;
+}
+
+.meta-alerta-box.alerta-sucesso {
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    color: var(--color-green);
+}
+
+.btn-alerta-acao {
+    background-color: var(--card-bg);
+    border: 1px solid currentColor;
+    color: inherit;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.btn-alerta-acao:hover {
+    background-color: currentColor;
+    color: var(--card-bg);
+}
+
+/* Ações do cabeçalho do card */
+.meta-header-acoes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-meta-icon {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.btn-meta-icon:hover {
+    color: var(--text-main);
+    background-color: var(--surface-alt);
+}
+
+.btn-meta-icon.btn-meta-del:hover {
+    color: var(--color-red);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.prazo-vencido {
+    color: var(--color-red) !important;
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    background-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+.meta-card-concluida {
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.fill-sucesso {
+    background: linear-gradient(90deg, #10b981, #059669) !important;
+}
+
+.btn-aporte-rapido {
+    color: var(--color-blue);
+    font-weight: 600;
+}
