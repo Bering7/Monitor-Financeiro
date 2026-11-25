@@ -123,6 +123,58 @@ function carregarMetasLocal(userId) {
     }
 }
 
+function carregarMetasDoCache() {
+    try {
+        if (typeof localStorage === 'undefined') return;
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('metas_')) {
+                const salvo = localStorage.getItem(k);
+                if (salvo) {
+                    const parsed = JSON.parse(salvo);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        todasMetas = parsed.map(m => ({
+                            ...m,
+                            aportes_mensais: typeof m.aportes_mensais === 'object' && m.aportes_mensais !== null ? m.aportes_mensais : {}
+                        }));
+                        break;
+                    }
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+// Obtém o valor total de aportes a ser descontado do saldo total
+function obterTotalAportesMetas(mes) {
+    if (!Array.isArray(todasMetas) || todasMetas.length === 0) {
+        carregarMetasDoCache();
+    }
+    if (!Array.isArray(todasMetas) || todasMetas.length === 0) return 0;
+
+    const mesRef = mes || mesAtualISO();
+    let totalMes = 0;
+    let totalGeral = 0;
+
+    todasMetas.forEach(meta => {
+        const aportes = meta.aportes_mensais || {};
+        totalMes += Number(aportes[mesRef]) || 0;
+        Object.values(aportes).forEach(v => {
+            totalGeral += Number(v) || 0;
+        });
+    });
+
+    // Desconta o total de aportes do mês atual (ou total geral se o usuário registrou aporte em outro mês)
+    return totalMes > 0 ? totalMes : totalGeral;
+}
+window.obterTotalAportesMetas = obterTotalAportesMetas;
+
+function sincronizarCardsResumo() {
+    if (typeof atualizarCardsResumo === 'function' && typeof todasTransacoes !== 'undefined') {
+        atualizarCardsResumo(todasTransacoes);
+    }
+}
+
 // ==========================================
 // BUSCAR DADOS
 // ==========================================
@@ -158,6 +210,7 @@ async function carregarMetas() {
     }));
 
     renderizarMetas();
+    sincronizarCardsResumo();
 }
 
 // ==========================================
@@ -470,6 +523,7 @@ async function salvarMetaFormulario(dados) {
 
         salvarMetasLocal(userId, todasMetas);
         renderizarMetas();
+        sincronizarCardsResumo();
         idEdicaoMeta = null;
     } else {
         // MODO CRIAÇÃO
@@ -511,6 +565,7 @@ async function salvarMetaFormulario(dados) {
         todasMetas.unshift(nova);
         salvarMetasLocal(userId, todasMetas);
         renderizarMetas();
+        sincronizarCardsResumo();
     }
 }
 
@@ -562,6 +617,7 @@ async function salvarAporteMensal(metaId, mes, valor) {
 
     salvarMetasLocal(userId, todasMetas);
     renderizarMetas();
+    sincronizarCardsResumo();
 }
 
 // ==========================================
@@ -585,6 +641,7 @@ async function excluirMeta(metaId) {
     todasMetas = todasMetas.filter(m => String(m.id) !== String(metaId));
     salvarMetasLocal(userId, todasMetas);
     renderizarMetas();
+    sincronizarCardsResumo();
 }
 
 // ==========================================
@@ -727,3 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('dadosCarregados', () => carregarMetas());
     carregarMetas();
 });
+
+// Inicialização imediata a partir do cache local para que os cards já reflitam os aportes
+carregarMetasDoCache();
+sincronizarCardsResumo();

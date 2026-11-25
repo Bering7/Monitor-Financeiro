@@ -89,8 +89,17 @@ function calcularResumo(transacoes) {
     });
 
     const investimento = receitas * (porcentagemInvestimento / 100);
-    // O valor investido sai do saldo disponível (Receita - Despesas - Investimento)
-    return { receitas, despesas, investimento, saldo: receitas - despesas - investimento };
+    const fnAportes = window.obterTotalAportesMetas || (typeof obterTotalAportesMetas === 'function' ? obterTotalAportesMetas : null);
+    const aportes = fnAportes ? fnAportes() : 0;
+
+    // O valor investido e os aportes saem do saldo disponível (Receita - Despesas - Investimento - Aportes)
+    return {
+        receitas,
+        despesas,
+        investimento,
+        aportes,
+        saldo: receitas - despesas - investimento - aportes
+    };
 }
 
 // Usado pelo grafico.js para calcular a porcentagem do tooltip
@@ -407,7 +416,8 @@ function renderizarListaGeral(transacoes) {
         'receita':          { rotulo: 'Receita',          cor: 'var(--color-green)', sinal: '+' },
         'despesa-fixa':     { rotulo: 'Despesa fixa',     cor: 'var(--color-red)',   sinal: '-' },
         'despesa-variavel': { rotulo: 'Despesa variável', cor: '#f97316',            sinal: '-' },
-        'investimento':     { rotulo: 'Investimento',     cor: 'var(--color-blue)',  sinal: ''  }
+        'investimento':     { rotulo: 'Investimento',     cor: 'var(--color-blue)',  sinal: ''  },
+        'metas':            { rotulo: 'Metas',            cor: '#8b5cf6',            sinal: '-' }
     };
 
     // 1. Aplica o filtro e mantém cada lançamento individual
@@ -430,10 +440,13 @@ function renderizarListaGeral(transacoes) {
         .filter(t => t.tipo === 'receita' && !receitaPendente(t))
         .reduce((soma, t) => soma + (Number(t.valor) || 0), 0);
     const valorInvestimento = totalReceitas * (porcentagemInvestimento / 100);
+    const fnAportes = window.obterTotalAportesMetas || (typeof obterTotalAportesMetas === 'function' ? obterTotalAportesMetas : null);
+    const valorAportes = fnAportes ? fnAportes() : 0;
     const semFiltroAtivo = filtroAtivo.descricao === '';
     const mostrarInvestimento = semFiltroAtivo && valorInvestimento > 0;
+    const mostrarAportes = semFiltroAtivo && valorAportes > 0;
 
-    if (lancamentos.length === 0 && !mostrarInvestimento) {
+    if (lancamentos.length === 0 && !mostrarInvestimento && !mostrarAportes) {
         listContainer.innerHTML = `<div class="empty-state"><p>Nenhum lançamento cadastrado.</p></div>`;
         return;
     }
@@ -480,6 +493,16 @@ function renderizarListaGeral(transacoes) {
             descricao: `Investimento (${porcentagemInvestimento}% da receita)`,
             tipo: 'investimento',
             valor: valorInvestimento
+        });
+    }
+
+    if (mostrarAportes) {
+        criarLinha({
+            data: '',
+            descricao: 'Aportes em Metas',
+            categoria: 'Metas Financeiras',
+            tipo: 'metas',
+            valor: valorAportes
         });
     }
 }
