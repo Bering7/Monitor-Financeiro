@@ -107,6 +107,7 @@
             <button class="tab-btn" data-tab="despesa-fixa">Despesa fixa</button>
             <button class="tab-btn" data-tab="despesa-variavel">Despesa variável</button>
             <button class="tab-btn" data-tab="gastos">Gastos</button>
+            <button class="tab-btn" data-tab="metas">Metas</button>
         </nav>
 
         <!-- Área Principal (Tabela + Gráfico) -->
@@ -198,6 +199,24 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- View da Aba Metas -->
+                <div class="metas-view" id="metas-view" style="display: none;">
+                    <div class="metas-header-bar">
+                        <div>
+                            <h4>Minhas Metas</h4>
+                            <span class="metas-subtitle" id="metas-resumo-texto">Defina objetivos e acompanhe seu ritmo mensal de economia.</span>
+                        </div>
+                        <button type="button" class="btn-primary" id="btn-nova-meta">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Nova Meta
+                        </button>
+                    </div>
+
+                    <div class="metas-grid" id="metas-lista">
+                        <!-- Cards gerados via JS -->
                     </div>
                 </div>
             </div>
@@ -496,6 +515,63 @@
         </div>
     </div>
 
+    <!-- Modal: Nova Meta -->
+    <div class="modal-overlay" id="modal-nova-meta">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Meta</h2>
+                <button type="button" class="btn-close" onclick="fecharModal('modal-nova-meta')">×</button>
+            </div>
+            <p class="modal-subtitle">Defina o objetivo, valor alvo e planejamento mensal.</p>
+            <form id="form-nova-meta" class="modal-form">
+                <label for="meta-titulo">Título da meta</label>
+                <input type="text" id="meta-titulo" placeholder="Ex: Reserva de emergência, Viagem..." required>
+
+                <label for="meta-valor-alvo">Valor alvo total</label>
+                <input type="text" id="meta-valor-alvo" placeholder="R$ 0,00" required>
+
+                <label for="meta-mes-alvo">Mês alvo (prazo final)</label>
+                <input type="month" id="meta-mes-alvo" required>
+
+                <label for="meta-aporte-parametro">Aporte parâmetro (referência mensal flexível)</label>
+                <input type="text" id="meta-aporte-parametro" placeholder="R$ 0,00" required>
+
+                <label for="meta-aporte-inicial">Valor guardado neste mês (opcional)</label>
+                <input type="text" id="meta-aporte-inicial" placeholder="R$ 0,00">
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="fecharModal('modal-nova-meta')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Criar Meta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar / Atualizar Aporte Mensal -->
+    <div class="modal-overlay" id="modal-aporte-meta">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Registrar Aporte</h2>
+                <button type="button" class="btn-close" onclick="fecharModal('modal-aporte-meta')">×</button>
+            </div>
+            <p class="modal-subtitle" id="aporte-meta-subtitulo">Informe o valor guardado para o mês selecionado.</p>
+            <form id="form-aporte-meta" class="modal-form">
+                <input type="hidden" id="aporte-meta-id">
+
+                <label for="aporte-mes">Mês de referência</label>
+                <input type="month" id="aporte-mes" required>
+
+                <label for="aporte-valor">Valor guardado no mês</label>
+                <input type="text" id="aporte-valor" placeholder="R$ 0,00" required>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-outline" onclick="fecharModal('modal-aporte-meta')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar Aporte</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Tela de login / cadastro (aparece quando não há conta logada) -->
     <div class="auth-overlay" id="auth-overlay">
         <div class="auth-card">
@@ -527,5 +603,6 @@
     <script src="js/grafico.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/metas.js"></script>
 </body>
 </html>

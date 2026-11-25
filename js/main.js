@@ -20,29 +20,25 @@ tabBtns.forEach(btn => {
             if (aba === 'despesa-fixa') tituloAba.textContent = 'Despesas Fixas';
             if (aba === 'despesa-variavel') tituloAba.textContent = 'Despesas Variáveis';
             if (aba === 'gastos') tituloAba.textContent = 'Gastos / Importar Extrato';
+            if (aba === 'metas') tituloAba.textContent = 'Metas Financeiras';
         }
 
         const btnAdicionar = document.getElementById('btn-adicionar');
         if (btnAdicionar) {
-            btnAdicionar.style.display = (aba === 'geral' || aba === 'gastos') ? 'none' : 'flex';
+            btnAdicionar.style.display = (aba === 'geral' || aba === 'gastos' || aba === 'metas') ? 'none' : 'flex';
         }
 
         const btnFiltro = document.getElementById('btn-filtro');
         if (btnFiltro) {
-            btnFiltro.style.display = (aba === 'gastos') ? 'none' : 'flex';
+            btnFiltro.style.display = (aba === 'gastos' || aba === 'metas') ? 'none' : 'flex';
         }
 
         const listContainer = document.getElementById('list-container');
         const gastosView = document.getElementById('gastos-view');
-        if (listContainer && gastosView) {
-            if (aba === 'gastos') {
-                listContainer.style.display = 'none';
-                gastosView.style.display = 'flex';
-            } else {
-                listContainer.style.display = 'block';
-                gastosView.style.display = 'none';
-            }
-        }
+        const metasView = document.getElementById('metas-view');
+        if (listContainer) listContainer.style.display = (aba === 'gastos' || aba === 'metas') ? 'none' : 'block';
+        if (gastosView) gastosView.style.display = (aba === 'gastos') ? 'flex' : 'none';
+        if (metasView) metasView.style.display = (aba === 'metas') ? 'flex' : 'none';
 
         // 4. CORREÇÃO: Força a lista a redesenhar imediatamente ao mudar de aba
         if (typeof renderizarLista === 'function' && typeof todasTransacoes !== 'undefined') {
@@ -87,7 +83,7 @@ if (btnAdicionar) {
         const abaAtivaObj = document.querySelector('.tab-btn.active');
         if (abaAtivaObj) {
             const abaAtiva = abaAtivaObj.getAttribute('data-tab');
-            if (abaAtiva !== 'geral' && abaAtiva !== 'gastos') {
+            if (abaAtiva !== 'geral' && abaAtiva !== 'gastos' && abaAtiva !== 'metas') {
                 abrirModal(`modal-${abaAtiva}`);
             }
         }

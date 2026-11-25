@@ -33,7 +33,8 @@ const NOMES_ABAS = {
     'receita': 'Receita',
     'despesa-fixa': 'Despesas Fixas',
     'despesa-variavel': 'Despesas Variáveis',
-    'gastos': 'Gastos'
+    'gastos': 'Gastos',
+    'metas': 'Metas'
 };
 
 // ==========================================

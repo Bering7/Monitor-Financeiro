@@ -490,6 +490,7 @@ function renderizarListaGeral(transacoes) {
 function renderizarLista(transacoes) {
     const listContainer = document.getElementById('list-container');
     const gastosView = document.getElementById('gastos-view');
+    const metasView = document.getElementById('metas-view');
     if (!listContainer) return;
 
     const abaAtivaObj = document.querySelector('.tab-btn.active');
@@ -497,21 +498,29 @@ function renderizarLista(transacoes) {
     
     const btnAdicionar = document.getElementById('btn-adicionar');
     if (btnAdicionar) {
-        btnAdicionar.style.display = (abaAtiva === 'geral' || abaAtiva === 'gastos') ? 'none' : 'flex';
+        btnAdicionar.style.display = (abaAtiva === 'geral' || abaAtiva === 'gastos' || abaAtiva === 'metas') ? 'none' : 'flex';
     }
 
     const btnFiltro = document.getElementById('btn-filtro');
     if (btnFiltro) {
-        btnFiltro.style.display = (abaAtiva === 'gastos') ? 'none' : 'flex';
+        btnFiltro.style.display = (abaAtiva === 'gastos' || abaAtiva === 'metas') ? 'none' : 'flex';
     }
 
     if (abaAtiva === 'gastos') {
         listContainer.style.display = 'none';
         if (gastosView) gastosView.style.display = 'flex';
+        if (metasView) metasView.style.display = 'none';
+        return;
+    } else if (abaAtiva === 'metas') {
+        listContainer.style.display = 'none';
+        if (gastosView) gastosView.style.display = 'none';
+        if (metasView) metasView.style.display = 'flex';
+        if (typeof carregarMetas === 'function') carregarMetas();
         return;
     } else {
         listContainer.style.display = 'block';
         if (gastosView) gastosView.style.display = 'none';
+        if (metasView) metasView.style.display = 'none';
     }
 
     if (abaAtiva === 'geral') {

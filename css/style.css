@@ -1434,4 +1434,211 @@ body {
     .preview-table td {
         padding: 8px;
     }
+
+    .metas-header-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .meta-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
+/* ========================================================
+   ABA METAS: CARDS, PROGRESSO E ESTATÍSTICAS
+   ======================================================== */
+.metas-view {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 6px;
+    box-sizing: border-box;
+}
+
+.metas-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--surface-alt);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px 20px;
+    gap: 16px;
+}
+
+.metas-header-bar h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.metas-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.metas-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.meta-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.02);
+}
+
+.meta-card:hover {
+    border-color: var(--color-blue);
+    transform: translateY(-1px);
+}
+
+.meta-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.meta-card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.meta-badge-prazo {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background-color: var(--surface-alt);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+.btn-meta-excluir {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.btn-meta-excluir:hover {
+    color: var(--color-red);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.meta-progress-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.meta-values-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.meta-val-acumulado {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-blue);
+}
+
+.meta-val-alvo {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+.meta-pct-badge {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-blue);
+}
+
+.meta-progress-track {
+    width: 100%;
+    height: 8px;
+    background-color: var(--surface-alt);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.meta-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-blue), var(--color-green));
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+.meta-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 10px 14px;
+    background-color: var(--surface-alt);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.meta-stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.meta-stat-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.meta-stat-value {
+    font-weight: 700;
+    color: var(--text-main);
+    font-size: 13px;
+}
+
+.meta-stat-ritmo-ok {
+    color: var(--color-green);
+}
+
+.meta-stat-ritmo-baixo {
+    color: #f97316;
+}
+
+.meta-stat-ritmo-neutro {
+    color: var(--text-muted);
+}
+
+.meta-actions-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 2px;
 }
